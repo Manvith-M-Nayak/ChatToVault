@@ -1,0 +1,43 @@
+/* ChatVault — minimal, unobtrusive button styling.
+   Inherits page font/theme via currentColor and transparent background. */
+
+.chatvault-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.4;
+  color: currentColor;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.chatvault-btn:hover {
+  opacity: 1;
+  background: rgba(127, 127, 127, 0.12);
+}
+
+/* Transient state colors. Kept subtle so they read in light + dark themes. */
+.chatvault-btn.chatvault-saving {
+  opacity: 1;
+  cursor: default;
+}
+
+.chatvault-btn.chatvault-saved {
+  opacity: 1;
+  color: #2e7d32;
+  border-color: #2e7d32;
+}
+
+.chatvault-btn.chatvault-failed {
+  opacity: 1;
+  color: #c62828;
+  border-color: #c62828;
+}
