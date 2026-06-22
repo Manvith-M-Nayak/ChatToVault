@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "ChatVault",
+  "version": "1.0.0",
+  "description": "Save individual AI responses from claude.ai and chatgpt.com to your Obsidian vault via the Local REST API plugin.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://claude.ai/*",
+    "https://chatgpt.com/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*", "https://chatgpt.com/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html",
+  "icons": {}
+}
