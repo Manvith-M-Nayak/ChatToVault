@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="26" fill="#5b4bda"/>
+  <!-- down arrow (save into vault) -->
+  <path d="M64 22 L64 66 M64 66 L44 46 M64 66 L84 46" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- tray -->
+  <path d="M28 78 L28 96 Q28 104 36 104 L92 104 Q100 104 100 96 L100 78" stroke="#ffffff" stroke-width="12" stroke-linecap="round" fill="none"/>
+</svg>

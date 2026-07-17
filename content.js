@@ -30,7 +30,7 @@
     "claude.ai": {
       // Claude renders messages with data-testid attributes.
       assistant: '[data-testid="assistant-message"], div.font-claude-message',
-      user: '[data-testid="user-message"], div[data-testid="user-message"]',
+      user: '[data-testid="user-message"]',
       content: ".prose, .font-claude-message, [class*='prose']",
     },
     "chatgpt.com": {
@@ -148,16 +148,44 @@
     }
   }
 
-  function handleSave(btn, assistantEl) {
-    const answer = extractText(assistantEl);
+  // Show "failed", then revert to idle so the button visibly stays reusable.
+  // Guarded so a retry started meanwhile isn't clobbered back to idle.
+  function flashFailed(btn) {
+    setState(btn, "failed");
+    setTimeout(() => {
+      if (btn.classList.contains("chatvault-failed")) setState(btn, "idle");
+    }, 4000);
+  }
+
+  // Streaming answers grow token-by-token. Sample the text until it stops
+  // changing so a mid-stream click saves the whole answer, not a prefix.
+  function waitForStableText(el, intervalMs = 600, timeoutMs = 120000) {
+    return new Promise((resolve) => {
+      let last = extractText(el);
+      const started = Date.now();
+      const tick = () => {
+        const current = extractText(el);
+        if (current === last || Date.now() - started >= timeoutMs) {
+          resolve(current);
+          return;
+        }
+        last = current;
+        setTimeout(tick, intervalMs);
+      };
+      setTimeout(tick, intervalMs);
+    });
+  }
+
+  async function handleSave(btn, assistantEl) {
+    setState(btn, "saving");
+
+    const answer = await waitForStableText(assistantEl);
     const question = findPrecedingQuestion(assistantEl);
 
     if (!answer) {
-      setState(btn, "failed");
+      flashFailed(btn);
       return;
     }
-
-    setState(btn, "saving");
 
     const payload = {
       type: "chatvault-save",
@@ -177,21 +205,24 @@
         // chrome.runtime.lastError fires if the worker is asleep/missing.
         if (chrome.runtime.lastError || !resp) {
           console.error("[ChatVault]", chrome.runtime.lastError);
-          setState(btn, "failed");
+          flashFailed(btn);
           return;
         }
         if (resp.ok) {
           setState(btn, "saved");
-          // Revert label after a moment so the button stays reusable.
-          setTimeout(() => setState(btn, "idle"), 2500);
+          // Revert label after a moment so the button stays reusable —
+          // unless another save already started on this button.
+          setTimeout(() => {
+            if (btn.classList.contains("chatvault-saved")) setState(btn, "idle");
+          }, 2500);
         } else {
           console.error("[ChatVault] save failed:", resp.error);
-          setState(btn, "failed");
+          flashFailed(btn);
         }
       });
     } catch (err) {
       console.error("[ChatVault]", err);
-      setState(btn, "failed");
+      flashFailed(btn);
     }
   }
 

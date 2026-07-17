@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Build artifacts
+chatvault-*.zip
+
+# Local publishing notes
+PUBLISHING.md

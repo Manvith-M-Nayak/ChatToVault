@@ -49,16 +49,24 @@ function getSettings() {
 function sanitizeForFilename(text) {
   const cleaned = (text || "")
     .replace(/[\\/:*?"<>|#^[\]]/g, "") // illegal / Obsidian-unfriendly chars
+    .replace(/[\u0000-\u001F\u007F]/g, "") // control chars
     .replace(/\s+/g, " ")
     .trim();
   // Slice by code points, not UTF-16 units, so we never cut an emoji's
   // surrogate pair in half (encodeURIComponent throws on lone surrogates).
-  return Array.from(cleaned).slice(0, 60).join("").trim();
+  // Trailing dots are stripped last: "name." is illegal on Windows.
+  return Array.from(cleaned).slice(0, 60).join("").trim().replace(/\.+$/, "");
 }
 
-// ISO timestamp, filesystem-safe (no colons).
+// Local-time timestamp, filesystem-safe (no colons). Filenames should match
+// the user's clock; the frontmatter `created` field keeps the exact UTC
+// instant. Milliseconds keep rapid saves collision-free.
 function fileTimestamp(d) {
-  return d.toISOString().replace(/[:.]/g, "-");
+  const p = (n, w = 2) => String(n).padStart(w, "0");
+  return (
+    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}` +
+    ` ${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}-${p(d.getMilliseconds(), 3)}`
+  );
 }
 
 // Build "folder/slug timestamp.md" then URL-encode each segment but KEEP the
@@ -131,6 +139,10 @@ async function saveToObsidian(data) {
     throw new Error("No API key set. Open ChatVault options and paste it.");
   }
 
+  // Tolerate users pasting the full header value ("Bearer <key>") — some
+  // plugin UIs present it that way; we add the scheme ourselves below.
+  const apiKey = settings.apiKey.replace(/^Bearer\s+/i, "");
+
   const date = new Date();
   const path = buildVaultPath(settings.folder, data.question, date);
   const note = buildNote(data, date);
@@ -142,7 +154,7 @@ async function saveToObsidian(data) {
   const res = await fetch(endpoint, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${settings.apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "text/markdown",
     },
     body: note,

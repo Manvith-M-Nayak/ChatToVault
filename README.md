@@ -31,8 +31,9 @@ How do I center a div?
 Use flexbox: …
 ```
 
-Filename = first ~60 chars of the (sanitized) question + an ISO timestamp, so
-files are unique and chronologically sortable.
+Filename = first ~60 chars of the (sanitized) question + a local-time
+timestamp (with milliseconds), so files are unique and chronologically
+sortable. The frontmatter `created` field keeps the exact UTC instant.
 
 ---
 
