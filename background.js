@@ -13,9 +13,12 @@
 "use strict";
 
 const DEFAULTS = {
+  destination: "obsidian", // "obsidian" | "notion" | "both"
   restUrl: "http://127.0.0.1:27123",
   apiKey: "",
   folder: "Chats/",
+  notionToken: "",
+  notionParent: "",
   // Frontmatter properties — each can be toggled in options.
   fmCreated: true,
   fmSource: true,
@@ -142,12 +145,206 @@ function buildNote({ question, answer, source, url }, date, settings) {
 }
 
 /* ---------------------------------------------------------------- *
+ * MARKDOWN -> NOTION BLOCKS
+ *
+ * Notion has no Markdown ingestion: pages are trees of typed JSON blocks.
+ * This converts the Markdown we scrape into those blocks, respecting the
+ * API's limits (2000 chars per rich-text segment, shallow nesting).
+ * ---------------------------------------------------------------- */
+
+const RICH_TEXT_LIMIT = 2000;
+
+// Languages Notion's code block accepts (subset we're likely to meet).
+const NOTION_LANGS = new Set([
+  "bash", "c", "c#", "c++", "css", "diff", "docker", "go", "graphql",
+  "html", "java", "javascript", "json", "kotlin", "lua", "makefile",
+  "markdown", "matlab", "perl", "php", "plain text", "powershell",
+  "python", "r", "ruby", "rust", "scala", "shell", "sql", "swift",
+  "typescript", "xml", "yaml",
+]);
+const NOTION_LANG_ALIASES = {
+  js: "javascript", jsx: "javascript", ts: "typescript", tsx: "typescript",
+  py: "python", rb: "ruby", sh: "shell", zsh: "shell", yml: "yaml",
+  cs: "c#", csharp: "c#", cpp: "c++", golang: "go", dockerfile: "docker",
+};
+
+function notionLang(lang) {
+  const l = NOTION_LANG_ALIASES[(lang || "").toLowerCase()] || (lang || "").toLowerCase();
+  return NOTION_LANGS.has(l) ? l : "plain text";
+}
+
+// Split text into <=2000-char rich-text segments, optionally annotated/linked.
+function richText(text, annotations, link) {
+  const out = [];
+  for (let i = 0; i < text.length; i += RICH_TEXT_LIMIT) {
+    const seg = { type: "text", text: { content: text.slice(i, i + RICH_TEXT_LIMIT) } };
+    if (link) seg.text.link = { url: link };
+    if (annotations) seg.annotations = annotations;
+    out.push(seg);
+  }
+  return out;
+}
+
+// Parse inline Markdown (**bold**, *italic*, ~~strike~~, `code`, [x](url))
+// into a Notion rich_text array.
+function inlineToRichText(md) {
+  const out = [];
+  const patterns = [
+    { re: /^\*\*([^*]+)\*\*/, ann: { bold: true } },
+    { re: /^\*([^*]+)\*/, ann: { italic: true } },
+    { re: /^~~([^~]+)~~/, ann: { strikethrough: true } },
+    { re: /^`([^`]+)`/, ann: { code: true } },
+  ];
+  const linkRe = /^\[([^\]]+)\]\((https?:[^)\s]+)\)/;
+  let rest = md;
+  let plain = "";
+  const flush = () => {
+    if (plain) out.push(...richText(plain));
+    plain = "";
+  };
+  while (rest) {
+    const lm = linkRe.exec(rest);
+    if (lm) {
+      flush();
+      out.push(...richText(lm[1], null, lm[2]));
+      rest = rest.slice(lm[0].length);
+      continue;
+    }
+    const p = patterns.find((p) => p.re.test(rest));
+    if (p) {
+      const m = p.re.exec(rest);
+      flush();
+      out.push(...richText(m[1], p.ann));
+      rest = rest.slice(m[0].length);
+      continue;
+    }
+    plain += rest[0];
+    rest = rest.slice(1);
+  }
+  flush();
+  return out;
+}
+
+// Convert a Markdown string into an array of Notion blocks. List nesting is
+// capped at one child level (Notion limits nesting depth per request);
+// anything deeper flattens to that level.
+function markdownToBlocks(md) {
+  const blocks = [];
+  const lines = (md || "").split("\n");
+  let i = 0;
+  let lastTopListItem = null;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    const listMatch = /^(\s*)(?:[-*]|\d+\.)\s+(.*)$/.exec(line);
+    if (!listMatch && line.trim()) lastTopListItem = null;
+
+    // Fenced code block.
+    const fence = /^```(\S*)\s*$/.exec(line);
+    if (fence) {
+      const buf = [];
+      i++;
+      while (i < lines.length && !/^```\s*$/.test(lines[i])) buf.push(lines[i++]);
+      i++; // skip closing fence
+      blocks.push({
+        object: "block",
+        type: "code",
+        code: { rich_text: richText(buf.join("\n")), language: notionLang(fence[1]) },
+      });
+      continue;
+    }
+
+    if (!line.trim()) { i++; continue; }
+
+    if (/^---+\s*$/.test(line.trim())) {
+      blocks.push({ object: "block", type: "divider", divider: {} });
+      i++;
+      continue;
+    }
+
+    const heading = /^(#{1,6})\s+(.*)$/.exec(line);
+    if (heading) {
+      const level = Math.min(heading[1].length, 3); // Notion max heading_3
+      const key = `heading_${level}`;
+      blocks.push({ object: "block", type: key, [key]: { rich_text: inlineToRichText(heading[2]) } });
+      i++;
+      continue;
+    }
+
+    if (/^>\s?/.test(line)) {
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/, ""));
+      blocks.push({ object: "block", type: "quote", quote: { rich_text: inlineToRichText(buf.join("\n")) } });
+      continue;
+    }
+
+    if (/^\|.*\|\s*$/.test(line.trim())) {
+      const rows = [];
+      while (i < lines.length && /^\|.*\|\s*$/.test(lines[i].trim())) {
+        const cells = lines[i].trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+        if (!cells.every((c) => /^:?-{3,}:?$/.test(c))) rows.push(cells); // drop separator row
+        i++;
+      }
+      if (rows.length) {
+        const width = Math.max(...rows.map((r) => r.length));
+        blocks.push({
+          object: "block",
+          type: "table",
+          table: {
+            table_width: width,
+            has_column_header: true,
+            has_row_header: false,
+            children: rows.map((r) => ({
+              object: "block",
+              type: "table_row",
+              table_row: {
+                cells: Array.from({ length: width }, (_, c) => inlineToRichText(r[c] || "")),
+              },
+            })),
+          },
+        });
+      }
+      continue;
+    }
+
+    if (listMatch) {
+      const type = /^\s*\d+\./.test(line) ? "numbered_list_item" : "bulleted_list_item";
+      const block = { object: "block", type, [type]: { rich_text: inlineToRichText(listMatch[2]) } };
+      const indented = listMatch[1].length >= 2;
+      if (indented && lastTopListItem) {
+        const pk = lastTopListItem.type;
+        (lastTopListItem[pk].children = lastTopListItem[pk].children || []).push(block);
+      } else {
+        blocks.push(block);
+        lastTopListItem = block;
+      }
+      i++;
+      continue;
+    }
+
+    // Paragraph: consume consecutive plain lines.
+    const buf = [line.trim()];
+    i++;
+    while (
+      i < lines.length &&
+      lines[i].trim() &&
+      !/^(```|#{1,6}\s|>|\||---+\s*$)/.test(lines[i].trim()) &&
+      !/^(\s*)(?:[-*]|\d+\.)\s+/.test(lines[i])
+    ) {
+      buf.push(lines[i++].trim());
+    }
+    blocks.push({ object: "block", type: "paragraph", paragraph: { rich_text: inlineToRichText(buf.join(" ")) } });
+  }
+
+  return blocks;
+}
+
+/* ---------------------------------------------------------------- *
  * REST API PUT
  * ---------------------------------------------------------------- */
 
-async function saveToObsidian(data) {
-  const settings = await getSettings();
-
+async function saveToObsidian(data, settings, date) {
   if (!settings.apiKey) {
     throw new Error("No API key set. Open ChatToVault options and paste it.");
   }
@@ -156,7 +353,6 @@ async function saveToObsidian(data) {
   // plugin UIs present it that way; we add the scheme ourselves below.
   const apiKey = settings.apiKey.replace(/^Bearer\s+/i, "");
 
-  const date = new Date();
   const path = buildVaultPath(settings.folder, data.question, date);
   const note = buildNote(data, date, settings);
 
@@ -182,12 +378,122 @@ async function saveToObsidian(data) {
 }
 
 /* ---------------------------------------------------------------- *
+ * NOTION PAGE CREATION
+ * ---------------------------------------------------------------- */
+
+// Accept a raw ID, a dashed UUID, or a full Notion URL; return the 32-hex ID.
+// Anchored to the end: page slugs contain hex-valid letters ("...-Page-<id>")
+// that would otherwise bleed into a floating match.
+function extractNotionId(input) {
+  const s = (input || "").split(/[?#]/)[0].replace(/-/g, "").replace(/\/+$/, "");
+  const m = /([0-9a-f]{32})$/i.exec(s);
+  return m ? m[1] : "";
+}
+
+const NOTION_API = "https://api.notion.com/v1";
+const NOTION_VERSION = "2022-06-28";
+const BLOCKS_PER_REQUEST = 100; // API cap on children per create/append
+
+async function saveToNotion(data, settings, date) {
+  const token = (settings.notionToken || "").replace(/^Bearer\s+/i, "");
+  if (!token) {
+    throw new Error("No Notion token set. Open ChatToVault options and paste it.");
+  }
+  const parentId = extractNotionId(settings.notionParent);
+  if (!parentId) {
+    throw new Error("No Notion parent page set. Paste the page URL in options.");
+  }
+
+  const title = sanitizeForFilename(data.question) || "AI Chat";
+
+  // Notion tracks creation time itself and tags need a database, so of the
+  // frontmatter toggles only source/url translate — as a line under the title.
+  const children = [];
+  if (settings.fmSource || settings.fmUrl) {
+    const meta = [];
+    if (settings.fmSource) meta.push(...richText(`Source: ${data.source}`));
+    if (settings.fmSource && settings.fmUrl) meta.push(...richText(" — "));
+    if (settings.fmUrl) meta.push(...richText(data.url, null, data.url));
+    children.push({ object: "block", type: "paragraph", paragraph: { rich_text: meta } });
+  }
+  children.push(
+    { object: "block", type: "heading_2", heading_2: { rich_text: richText("Question") } },
+    ...markdownToBlocks(data.question || "(no question captured)"),
+    { object: "block", type: "heading_2", heading_2: { rich_text: richText("Answer") } },
+    ...markdownToBlocks(data.answer || "")
+  );
+
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "Notion-Version": NOTION_VERSION,
+  };
+
+  const res = await fetch(`${NOTION_API}/pages`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      parent: { page_id: parentId },
+      properties: { title: { title: richText(title) } },
+      children: children.slice(0, BLOCKS_PER_REQUEST),
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(`Notion API ${res.status}: ${body.message || res.statusText}`);
+  }
+  const page = await res.json();
+
+  // Long notes: append the remaining blocks in API-sized chunks.
+  for (let i = BLOCKS_PER_REQUEST; i < children.length; i += BLOCKS_PER_REQUEST) {
+    const r = await fetch(`${NOTION_API}/blocks/${page.id}/children`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ children: children.slice(i, i + BLOCKS_PER_REQUEST) }),
+    });
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      throw new Error(`Notion API ${r.status} while appending: ${body.message || r.statusText}`);
+    }
+  }
+
+  return page.url;
+}
+
+/* ---------------------------------------------------------------- *
  * MESSAGE HANDLER
  * ---------------------------------------------------------------- */
 
+// Route the save to the destination(s) chosen in options. With "both", each
+// destination is attempted even if the other fails, and errors are combined.
+async function handleSave(data) {
+  const settings = await getSettings();
+  const date = new Date();
+  const dest = settings.destination || "obsidian";
+
+  const errors = [];
+  let endpoint = "";
+  if (dest === "obsidian" || dest === "both") {
+    try {
+      endpoint = await saveToObsidian(data, settings, date);
+    } catch (err) {
+      errors.push(`Obsidian: ${err.message || err}`);
+    }
+  }
+  if (dest === "notion" || dest === "both") {
+    try {
+      endpoint = (await saveToNotion(data, settings, date)) || endpoint;
+    } catch (err) {
+      errors.push(`Notion: ${err.message || err}`);
+    }
+  }
+  if (errors.length) throw new Error(errors.join(" | "));
+  return endpoint;
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === "chattovault-save") {
-    saveToObsidian(msg.data)
+    handleSave(msg.data)
       .then((endpoint) => sendResponse({ ok: true, endpoint }))
       .catch((err) => sendResponse({ ok: false, error: String(err.message || err) }));
     // Return true to keep the message channel open for the async response.

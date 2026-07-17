@@ -21,13 +21,15 @@
         font-weight: 600;
         font-size: 14px;
       }
-      input {
+      input,
+      select {
         width: 100%;
         box-sizing: border-box;
         padding: 8px 10px;
         font-size: 14px;
         border: 1px solid #ccc;
         border-radius: 6px;
+        background: #fff;
       }
       .hint {
         font-size: 12px;
@@ -74,6 +76,14 @@
       <strong>Local REST API</strong> community plugin.
     </p>
 
+    <label for="destination">Save to</label>
+    <select id="destination">
+      <option value="obsidian">Obsidian</option>
+      <option value="notion">Notion</option>
+      <option value="both">Both</option>
+    </select>
+    <div class="hint">Where each note is written when you click Save.</div>
+
     <label for="restUrl">Local REST API URL</label>
     <input id="restUrl" type="text" placeholder="http://127.0.0.1:27123" />
     <div class="hint">
@@ -88,6 +98,21 @@
     <input id="folder" type="text" placeholder="Chats/" />
     <div class="hint">
       Folder inside your vault where notes are written (created if missing).
+    </div>
+
+    <label for="notionToken">Notion Integration Token</label>
+    <input id="notionToken" type="password" placeholder="ntn_… or secret_…" />
+    <div class="hint">
+      Create an internal integration at
+      <strong>notion.so/my-integrations</strong> and paste its secret here.
+      Only needed when saving to Notion.
+    </div>
+
+    <label for="notionParent">Notion Parent Page</label>
+    <input id="notionParent" type="text" placeholder="Page URL or ID" />
+    <div class="hint">
+      Paste the URL (or ID) of the Notion page notes are created under. The
+      page must be shared with your integration (page menu → Connections).
     </div>
 
     <label>Note properties</label>

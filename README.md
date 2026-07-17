@@ -3,10 +3,11 @@
 A Chromium (Manifest V3) browser extension that adds a **Save to Obsidian**
 button under every AI response on **claude.ai** and **chatgpt.com**. Each click
 saves that one answer — plus the question directly above it — as its own
-Markdown note in your Obsidian vault.
+Markdown note in your Obsidian vault, a page in Notion, or both.
 
-Notes are written through Obsidian's **Local REST API** community plugin. Every
-click creates a new file; nothing is ever overwritten.
+Obsidian notes are written through Obsidian's **Local REST API** community
+plugin; Notion pages through the official **Notion API**. Every click creates a
+new file/page; nothing is ever overwritten.
 
 ---
 
@@ -68,10 +69,26 @@ frontmatter block.
 1. Click the extension's **Details → Extension options** (or right-click the
    icon → **Options**).
 2. Fill in:
+   - **Save to** — Obsidian (default), Notion, or Both.
    - **Local REST API URL** — default `http://127.0.0.1:27123`.
    - **API Key** — paste the key from step 1.4.
    - **Target Vault Folder** — default `Chats/`.
 3. Click **Save**.
+
+### 4. (Optional) Notion setup
+
+Only needed if **Save to** is Notion or Both:
+
+1. Go to **notion.so/my-integrations** → **New integration** (internal) → copy
+   the secret token into **Notion Integration Token**.
+2. In Notion, open (or create) the page that should hold saved chats. Page
+   menu (•••) → **Connections** → add your integration.
+3. Copy that page's URL into **Notion Parent Page** — the extension extracts
+   the ID automatically. Each save creates a new subpage there.
+
+Notion pages get the question/answer as native blocks (headings, code blocks,
+lists, tables). Of the frontmatter toggles, `source` and `url` become a line
+under the title; `created` is tracked by Notion itself; `tags` doesn't apply.
 
 ---
 
@@ -109,7 +126,11 @@ site-specific DOM query lives there, clearly labeled.
 
 ## Privacy
 
-No telemetry. No external servers. No API keys in code. Your API key is stored
-in `chrome.storage.local` — it never leaves this machine and is never synced to
-the browser vendor's servers — and notes go straight from your browser to your
-local Obsidian instance.
+No telemetry. No API keys in code. Keys/tokens are stored in
+`chrome.storage.local` — never synced to the browser vendor's servers.
+
+- **Obsidian**: notes go straight from your browser to your local Obsidian
+  instance; nothing leaves the machine.
+- **Notion** (opt-in): saved chats are sent to Notion's servers via the
+  official API — cloud storage, by definition. Only what you explicitly click
+  Save on is sent.
