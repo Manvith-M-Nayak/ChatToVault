@@ -1,4 +1,4 @@
-/* ChatVault — options page logic.
+/* ChatToVault — options page logic.
  * Loads saved settings into the form and persists edits to chrome.storage.local
  * (NOT sync — the API key must never leave this machine). Reads fall back to
  * the old sync storage once so pre-existing settings migrate cleanly.

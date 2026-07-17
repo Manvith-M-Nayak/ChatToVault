@@ -1,4 +1,4 @@
-# ChatVault
+# ChatToVault
 
 A Chromium (Manifest V3) browser extension that adds a **Save to Obsidian**
 button under every AI response on **claude.ai** and **chatgpt.com**. Each click
@@ -61,7 +61,7 @@ frontmatter block.
 2. Toggle **Developer mode** (top-right) on.
 3. Click **Load unpacked** and select this project folder (the one containing
    `manifest.json`).
-4. ChatVault appears in your extension list.
+4. ChatToVault appears in your extension list.
 
 ### 3. Paste your settings
 

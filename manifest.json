@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "ChatVault",
+  "name": "ChatToVault",
   "version": "1.1.0",
   "description": "Save individual AI responses from claude.ai and chatgpt.com to your Obsidian vault via the Local REST API plugin.",
   "permissions": ["storage"],

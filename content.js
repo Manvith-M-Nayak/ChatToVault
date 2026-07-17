@@ -1,4 +1,4 @@
-/* ChatVault — content script.
+/* ChatToVault — content script.
  *
  * Responsibilities:
  *   1. Detect which site we are on (claude.ai vs chatgpt.com).
@@ -50,7 +50,7 @@
   const SITE = SELECTORS[HOST];
   if (!SITE) return;
 
-  const BTN_CLASS = "chatvault-btn";
+  const BTN_CLASS = "chattovault-btn";
 
   // Map each assistant message element to its injected button. Both sites are
   // React apps that can drop our button on re-render while keeping the message
@@ -287,23 +287,23 @@
 
   function setState(btn, state) {
     btn.classList.remove(
-      "chatvault-saving",
-      "chatvault-saved",
-      "chatvault-failed"
+      "chattovault-saving",
+      "chattovault-saved",
+      "chattovault-failed"
     );
     switch (state) {
       case "saving":
-        btn.classList.add("chatvault-saving");
+        btn.classList.add("chattovault-saving");
         btn.textContent = "Saving…";
         btn.disabled = true;
         break;
       case "saved":
-        btn.classList.add("chatvault-saved");
+        btn.classList.add("chattovault-saved");
         btn.textContent = "Saved ✓";
         btn.disabled = false;
         break;
       case "failed":
-        btn.classList.add("chatvault-failed");
+        btn.classList.add("chattovault-failed");
         btn.textContent = "Failed — retry";
         btn.disabled = false;
         break;
@@ -318,7 +318,7 @@
   function flashFailed(btn) {
     setState(btn, "failed");
     setTimeout(() => {
-      if (btn.classList.contains("chatvault-failed")) setState(btn, "idle");
+      if (btn.classList.contains("chattovault-failed")) setState(btn, "idle");
     }, 4000);
   }
 
@@ -353,7 +353,7 @@
     }
 
     const payload = {
-      type: "chatvault-save",
+      type: "chattovault-save",
       data: {
         question,
         answer,
@@ -369,7 +369,7 @@
       chrome.runtime.sendMessage(payload, (resp) => {
         // chrome.runtime.lastError fires if the worker is asleep/missing.
         if (chrome.runtime.lastError || !resp) {
-          console.error("[ChatVault]", chrome.runtime.lastError);
+          console.error("[ChatToVault]", chrome.runtime.lastError);
           flashFailed(btn);
           return;
         }
@@ -378,15 +378,15 @@
           // Revert label after a moment so the button stays reusable —
           // unless another save already started on this button.
           setTimeout(() => {
-            if (btn.classList.contains("chatvault-saved")) setState(btn, "idle");
+            if (btn.classList.contains("chattovault-saved")) setState(btn, "idle");
           }, 2500);
         } else {
-          console.error("[ChatVault] save failed:", resp.error);
+          console.error("[ChatToVault] save failed:", resp.error);
           flashFailed(btn);
         }
       });
     } catch (err) {
-      console.error("[ChatVault]", err);
+      console.error("[ChatToVault]", err);
       flashFailed(btn);
     }
   }

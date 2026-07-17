@@ -1,4 +1,4 @@
-/* ChatVault — background service worker (MV3).
+/* ChatToVault — background service worker (MV3).
  *
  * Why here and not the content script: the fetch to Obsidian's Local REST API
  * is an HTTP (not HTTPS) request to localhost from an HTTPS page. Doing it from
@@ -149,7 +149,7 @@ async function saveToObsidian(data) {
   const settings = await getSettings();
 
   if (!settings.apiKey) {
-    throw new Error("No API key set. Open ChatVault options and paste it.");
+    throw new Error("No API key set. Open ChatToVault options and paste it.");
   }
 
   // Tolerate users pasting the full header value ("Bearer <key>") — some
@@ -186,7 +186,7 @@ async function saveToObsidian(data) {
  * ---------------------------------------------------------------- */
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg && msg.type === "chatvault-save") {
+  if (msg && msg.type === "chattovault-save") {
     saveToObsidian(msg.data)
       .then((endpoint) => sendResponse({ ok: true, endpoint }))
       .catch((err) => sendResponse({ ok: false, error: String(err.message || err) }));

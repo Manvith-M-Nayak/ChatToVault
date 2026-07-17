@@ -2,7 +2,7 @@
 .DS_Store
 
 # Build artifacts
-chatvault-*.zip
+chattovault-*.zip
 
 # Local publishing notes
 PUBLISHING.md
