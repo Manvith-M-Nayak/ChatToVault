@@ -34,10 +34,9 @@ Filename = first ~60 chars of the (sanitized) question + a local-time
 timestamp (with milliseconds), so files are unique and chronologically
 sortable. The frontmatter `created` field keeps the exact UTC instant.
 
-Each frontmatter property (`created`, `source`, `url`, `tags`) can be toggled
-in the extension options. Defaults: `created`, `source`, and `url` on;
-`tags` (adds `ai-chat`) off. Disable all four and the note is written with no
-frontmatter block.
+Each frontmatter property (`created`, `source`, `url`) can be toggled in the
+extension options; all three are on by default. Disable all three and the note
+is written with no frontmatter block.
 
 ---
 
@@ -86,8 +85,7 @@ both. A save button appears for each one you fill in.
 
 Notion pages get the question/answer as native blocks (headings, code blocks,
 lists, tables). Of the frontmatter toggles, `source` and `url` become a line
-under the title, `tags` renders as a code-styled "Tags: ai-chat" line, and
-`created` is tracked by Notion itself.
+under the title, and `created` is tracked by Notion itself.
 
 ---
 

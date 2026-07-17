@@ -7,7 +7,7 @@
 
 const $ = (id) => document.getElementById(id);
 
-const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl", "fmTags"];
+const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl"];
 const DEFAULTS = {
   apiKey: "",
   notionToken: "",
@@ -16,7 +16,6 @@ const DEFAULTS = {
   fmCreated: true,
   fmSource: true,
   fmUrl: true,
-  fmTags: false,
   lastSave: null,
 };
 

@@ -23,7 +23,6 @@ const DEFAULTS = {
   fmCreated: true,
   fmSource: true,
   fmUrl: true,
-  fmTags: false,
 };
 
 /* ---------------------------------------------------------------- *
@@ -112,7 +111,6 @@ function buildNote({ question, answer, source, url }, date, settings) {
   if (settings.fmCreated) fields.push(`created: ${date.toISOString()}`);
   if (settings.fmSource) fields.push(`source: ${source}`);
   if (settings.fmUrl) fields.push(`url: ${yamlString(url)}`);
-  if (settings.fmTags) fields.push("tags: [ai-chat]");
 
   const frontmatter = fields.length
     ? ["---", ...fields, "---"].join("\n")
@@ -397,8 +395,7 @@ async function saveToNotion(data, settings, date) {
   const title = sanitizeForFilename(data.question) || "AI Chat";
 
   // Notion tracks creation time itself, so `created` is skipped. source/url
-  // become a line under the title; tags render as a code-styled chip line
-  // (real tag properties would need a database parent, not a page).
+  // become a line under the title.
   const children = [];
   if (settings.fmSource || settings.fmUrl) {
     const meta = [];
@@ -406,18 +403,6 @@ async function saveToNotion(data, settings, date) {
     if (settings.fmSource && settings.fmUrl) meta.push(...richText(" — "));
     if (settings.fmUrl) meta.push(...richText(data.url, null, data.url));
     children.push({ object: "block", type: "paragraph", paragraph: { rich_text: meta } });
-  }
-  if (settings.fmTags) {
-    children.push({
-      object: "block",
-      type: "paragraph",
-      paragraph: {
-        rich_text: [
-          ...richText("Tags: "),
-          ...richText("ai-chat", { code: true }),
-        ],
-      },
-    });
   }
   children.push(
     { object: "block", type: "heading_2", heading_2: { rich_text: richText("Question") } },

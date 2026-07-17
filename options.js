@@ -15,10 +15,9 @@ const DEFAULTS = {
   fmCreated: true,
   fmSource: true,
   fmUrl: true,
-  fmTags: false,
 };
 
-const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl", "fmTags"];
+const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl"];
 
 const $ = (id) => document.getElementById(id);
 
