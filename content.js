@@ -442,6 +442,14 @@
       });
     } catch (err) {
       console.error("[ChatToVault]", err);
+      // Extension was reloaded/updated: this page's copy of the content
+      // script is orphaned and can never reach the new worker. Retrying is
+      // pointless — only a page refresh reconnects it, so say exactly that.
+      if (!chrome.runtime?.id) {
+        btn.textContent = "Refresh page to save";
+        btn.disabled = true;
+        return;
+      }
       flashFailed(btn);
     }
   }
