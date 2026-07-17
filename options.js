@@ -31,6 +31,12 @@ function save() {
 
   chrome.storage.sync.set(settings, () => {
     const status = $("status");
+    // Write can fail (e.g. sync quota exceeded); lastError must be checked
+    // or the user sees "Saved ✓" for settings that were never stored.
+    if (chrome.runtime.lastError) {
+      status.textContent = `Save failed: ${chrome.runtime.lastError.message}`;
+      return;
+    }
     status.textContent = "Saved ✓";
     setTimeout(() => (status.textContent = ""), 1500);
   });

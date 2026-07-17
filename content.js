@@ -47,7 +47,12 @@
   if (!SITE) return;
 
   const BTN_CLASS = "chatvault-btn";
-  const FLAG_ATTR = "data-chatvault-injected";
+
+  // Map each assistant message element to its injected button. Both sites are
+  // React apps that can drop our button on re-render while keeping the message
+  // element itself, so we track the live button and re-inject when it is gone
+  // (a flag attribute on the element would outlive the button and block that).
+  const buttons = new WeakMap();
 
   /* ------------------------------------------------------------------ *
    * SCRAPING HELPERS
@@ -95,10 +100,11 @@
   }
 
   function injectButton(assistantEl) {
-    if (assistantEl.getAttribute(FLAG_ATTR) === "1") return;
-    assistantEl.setAttribute(FLAG_ATTR, "1");
+    const existing = buttons.get(assistantEl);
+    if (existing && existing.isConnected) return;
 
     const btn = makeButton(assistantEl);
+    buttons.set(assistantEl, btn);
     // Insert as a SIBLING after the message block, never inside it — otherwise
     // extractText's whole-block fallback would scrape the button label into
     // the saved answer.
@@ -163,22 +169,30 @@
       },
     };
 
-    chrome.runtime.sendMessage(payload, (resp) => {
-      // chrome.runtime.lastError fires if the worker is asleep/missing.
-      if (chrome.runtime.lastError || !resp) {
-        console.error("[ChatVault]", chrome.runtime.lastError);
-        setState(btn, "failed");
-        return;
-      }
-      if (resp.ok) {
-        setState(btn, "saved");
-        // Revert label after a moment so the button stays reusable.
-        setTimeout(() => setState(btn, "idle"), 2500);
-      } else {
-        console.error("[ChatVault] save failed:", resp.error);
-        setState(btn, "failed");
-      }
-    });
+    // sendMessage throws synchronously ("Extension context invalidated") if
+    // the extension was reloaded after this content script was injected —
+    // without the catch the button would stay disabled at "Saving…" forever.
+    try {
+      chrome.runtime.sendMessage(payload, (resp) => {
+        // chrome.runtime.lastError fires if the worker is asleep/missing.
+        if (chrome.runtime.lastError || !resp) {
+          console.error("[ChatVault]", chrome.runtime.lastError);
+          setState(btn, "failed");
+          return;
+        }
+        if (resp.ok) {
+          setState(btn, "saved");
+          // Revert label after a moment so the button stays reusable.
+          setTimeout(() => setState(btn, "idle"), 2500);
+        } else {
+          console.error("[ChatVault] save failed:", resp.error);
+          setState(btn, "failed");
+        }
+      });
+    } catch (err) {
+      console.error("[ChatVault]", err);
+      setState(btn, "failed");
+    }
   }
 
   /* ------------------------------------------------------------------ *
