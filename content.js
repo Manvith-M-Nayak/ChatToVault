@@ -1,7 +1,7 @@
 /* ChatToVault — content script.
  *
  * Responsibilities:
- *   1. Detect which site we are on (claude.ai vs chatgpt.com).
+ *   1. Detect which site we are on (claude.ai, chatgpt.com, gemini.google.com).
  *   2. Find every assistant message in the DOM.
  *   3. Inject a save button per configured destination (Obsidian, Notion)
  *      under each one.
@@ -46,6 +46,16 @@
       user: '[data-message-author-role="user"]',
       content: ".markdown, .prose, [class*='markdown']",
       actionBar: '[data-testid="copy-turn-action-button"]',
+    },
+    "gemini.google.com": {
+      // Gemini is an Angular app; each answer is a <model-response> custom
+      // element and each prompt a <user-query> element.
+      assistant: "model-response",
+      user: "user-query",
+      content: "message-content, .markdown, .query-text",
+      // Copy lives in the <message-actions> row under each answer; anchor on
+      // its copy button (custom element, with data-test-id fallback).
+      actionBar: 'copy-button, [data-test-id="copy-button"]',
     },
   };
 
@@ -425,7 +435,7 @@
       data: {
         question,
         answer,
-        source: HOST, // "claude.ai" or "chatgpt.com"
+        source: HOST, // "claude.ai", "chatgpt.com", or "gemini.google.com"
         url: location.href,
       },
     };
