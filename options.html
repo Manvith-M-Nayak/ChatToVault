@@ -53,6 +53,18 @@
         font-size: 13px;
         color: #2e7d32;
       }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+        font-weight: 400;
+        font-size: 14px;
+      }
+      .check input {
+        width: auto;
+        margin: 0;
+      }
     </style>
   </head>
   <body>
@@ -77,6 +89,23 @@
     <div class="hint">
       Folder inside your vault where notes are written (created if missing).
     </div>
+
+    <label>Note properties</label>
+    <div class="hint">
+      Frontmatter fields written at the top of each saved note.
+    </div>
+    <label class="check">
+      <input type="checkbox" id="fmCreated" /> created — save timestamp
+    </label>
+    <label class="check">
+      <input type="checkbox" id="fmSource" /> source — claude.ai / chatgpt.com
+    </label>
+    <label class="check">
+      <input type="checkbox" id="fmUrl" /> url — link back to the chat
+    </label>
+    <label class="check">
+      <input type="checkbox" id="fmTags" /> tags — adds <code>ai-chat</code>
+    </label>
 
     <div>
       <button id="save">Save</button>

@@ -16,6 +16,11 @@ const DEFAULTS = {
   restUrl: "http://127.0.0.1:27123",
   apiKey: "",
   folder: "Chats/",
+  // Frontmatter properties — each can be toggled in options.
+  fmCreated: true,
+  fmSource: true,
+  fmUrl: true,
+  fmTags: false,
 };
 
 /* ---------------------------------------------------------------- *
@@ -99,18 +104,19 @@ function yamlString(s) {
   return `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-function buildNote({ question, answer, source, url }, date) {
-  const created = date.toISOString();
+function buildNote({ question, answer, source, url }, date, settings) {
   const title = sanitizeForFilename(question) || "AI Chat";
 
-  const frontmatter = [
-    "---",
-    `created: ${created}`,
-    `source: ${source}`,
-    `url: ${yamlString(url)}`,
-    "tags: [ai-chat]",
-    "---",
-  ].join("\n");
+  // Only the properties the user enabled; no fields -> no frontmatter block.
+  const fields = [];
+  if (settings.fmCreated) fields.push(`created: ${date.toISOString()}`);
+  if (settings.fmSource) fields.push(`source: ${source}`);
+  if (settings.fmUrl) fields.push(`url: ${yamlString(url)}`);
+  if (settings.fmTags) fields.push("tags: [ai-chat]");
+
+  const frontmatter = fields.length
+    ? ["---", ...fields, "---"].join("\n")
+    : "";
 
   const body = [
     `# ${title}`,
@@ -125,7 +131,7 @@ function buildNote({ question, answer, source, url }, date) {
     "",
   ].join("\n");
 
-  return `${frontmatter}\n\n${body}`;
+  return frontmatter ? `${frontmatter}\n\n${body}` : body;
 }
 
 /* ---------------------------------------------------------------- *
@@ -145,7 +151,7 @@ async function saveToObsidian(data) {
 
   const date = new Date();
   const path = buildVaultPath(settings.folder, data.question, date);
-  const note = buildNote(data, date);
+  const note = buildNote(data, date, settings);
 
   // Strip any trailing slash on the base URL to avoid a double slash.
   const base = settings.restUrl.replace(/\/+$/, "");

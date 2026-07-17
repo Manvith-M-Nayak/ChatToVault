@@ -10,7 +10,14 @@ const DEFAULTS = {
   restUrl: "http://127.0.0.1:27123",
   apiKey: "",
   folder: "Chats/",
+  // Frontmatter property toggles.
+  fmCreated: true,
+  fmSource: true,
+  fmUrl: true,
+  fmTags: false,
 };
+
+const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl", "fmTags"];
 
 const $ = (id) => document.getElementById(id);
 
@@ -18,6 +25,7 @@ function fillForm(items) {
   $("restUrl").value = items.restUrl;
   $("apiKey").value = items.apiKey;
   $("folder").value = items.folder;
+  FM_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
 }
 
 // Populate the form with stored values (or defaults). Prefer local storage;
@@ -36,6 +44,7 @@ function save() {
     apiKey: $("apiKey").value.trim(),
     folder: $("folder").value.trim() || DEFAULTS.folder,
   };
+  FM_TOGGLES.forEach((k) => (settings[k] = $(k).checked));
 
   chrome.storage.local.set(settings, () => {
     const status = $("status");

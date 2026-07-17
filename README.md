@@ -17,7 +17,6 @@ click creates a new file; nothing is ever overwritten.
 created: 2026-06-22T10:30:00.000Z
 source: claude.ai
 url: "https://claude.ai/chat/…"
-tags: [ai-chat]
 ---
 
 # How do I center a div
@@ -34,6 +33,11 @@ Use flexbox: …
 Filename = first ~60 chars of the (sanitized) question + a local-time
 timestamp (with milliseconds), so files are unique and chronologically
 sortable. The frontmatter `created` field keeps the exact UTC instant.
+
+Each frontmatter property (`created`, `source`, `url`, `tags`) can be toggled
+in the extension options. Defaults: `created`, `source`, and `url` on;
+`tags` (adds `ai-chat`) off. Disable all four and the note is written with no
+frontmatter block.
 
 ---
 
