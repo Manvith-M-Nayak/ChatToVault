@@ -308,6 +308,9 @@
 
     const wrap = document.createElement("span");
     wrap.className = WRAP_CLASS;
+    // Site tag lets the stylesheet size buttons to match each site's own
+    // action icons (Claude's are more compact than ChatGPT's).
+    if (HOST === "claude.ai") wrap.classList.add("chattovault-site-claude");
     wrap.dataset.dests = destsKey;
     dests.forEach((d) => wrap.appendChild(makeButton(assistantEl, d)));
     buttons.set(assistantEl, wrap);

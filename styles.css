@@ -26,6 +26,16 @@
   transition: opacity 0.15s ease, background 0.15s ease;
 }
 
+/* Claude's action-bar icons are smaller than ChatGPT's; match them there
+   and leave ChatGPT sizing untouched. */
+.chattovault-site-claude .chattovault-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  gap: 4px;
+  margin: 2px;
+  border-radius: 5px;
+}
+
 .chattovault-btn:hover {
   opacity: 1;
   background: rgba(127, 127, 127, 0.12);
