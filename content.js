@@ -3,9 +3,10 @@
  * Responsibilities:
  *   1. Detect which site we are on (claude.ai vs chatgpt.com).
  *   2. Find every assistant message in the DOM.
- *   3. Inject a "Save to Obsidian" button under each one.
- *   4. On click, scrape that answer + the preceding user question and ask the
- *      background service worker to write it to Obsidian.
+ *   3. Inject a save button per configured destination (Obsidian, Notion)
+ *      under each one.
+ *   4. On click, scrape that answer + the preceding user question as Markdown
+ *      and ask the background service worker to write it to that destination.
  *
  * Messages stream in token-by-token and the user can switch chats without a
  * full page reload, so we use a MutationObserver to keep buttons in sync.

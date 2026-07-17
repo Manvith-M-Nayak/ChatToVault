@@ -5,9 +5,10 @@
  * the content script triggers CORS / mixed-content blocks. The service worker
  * is not bound by the page origin, so the request goes through cleanly.
  *
- * Flow: receive {question, answer, source, url} -> read settings from
- * chrome.storage -> build a Markdown note -> PUT it to a unique path -> reply
- * with {ok:true} or {ok:false, error}.
+ * Flow: receive {dest, data: {question, answer, source, url}} -> read settings
+ * from chrome.storage -> either build a Markdown note and PUT it to Obsidian's
+ * REST API, or convert to blocks and create a Notion page -> reply with
+ * {ok:true} or {ok:false, error}.
  */
 
 "use strict";
@@ -30,20 +31,10 @@ const DEFAULTS = {
  * ---------------------------------------------------------------- */
 /* Settings live in chrome.storage.local: sync storage is uploaded to the
  * browser vendor's servers and replicated to every signed-in device, which is
- * no place for an API key. Earlier versions used sync, so on first read we
- * migrate any old settings across and scrub the key from sync. */
+ * no place for API keys and tokens. */
 function getSettings() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(DEFAULTS, (local) => {
-      if (local.apiKey) return resolve(local);
-      chrome.storage.sync.get(DEFAULTS, (synced) => {
-        if (synced.apiKey) {
-          chrome.storage.local.set(synced);
-          chrome.storage.sync.remove("apiKey");
-        }
-        resolve(synced);
-      });
-    });
+    chrome.storage.local.get(DEFAULTS, resolve);
   });
 }
 

@@ -1,7 +1,6 @@
 /* ChatToVault — options page logic.
  * Loads saved settings into the form and persists edits to chrome.storage.local
- * (NOT sync — the API key must never leave this machine). Reads fall back to
- * the old sync storage once so pre-existing settings migrate cleanly.
+ * (NOT sync — keys and tokens must never leave this machine).
  */
 
 "use strict";
@@ -32,13 +31,9 @@ function fillForm(items) {
   FM_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
 }
 
-// Populate the form with stored values (or defaults). Prefer local storage;
-// fall back to the legacy sync storage so old installs see their settings.
+// Populate the form with stored values (or defaults).
 function load() {
-  chrome.storage.local.get(DEFAULTS, (local) => {
-    if (local.apiKey) return fillForm(local);
-    chrome.storage.sync.get(DEFAULTS, fillForm);
-  });
+  chrome.storage.local.get(DEFAULTS, fillForm);
 }
 
 // Persist the form values.
@@ -60,8 +55,6 @@ function save() {
       status.textContent = `Save failed: ${chrome.runtime.lastError.message}`;
       return;
     }
-    // Scrub any key left behind by versions that stored it in sync.
-    chrome.storage.sync.remove("apiKey");
     status.textContent = "Saved ✓";
     setTimeout(() => (status.textContent = ""), 1500);
   });
