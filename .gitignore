@@ -6,3 +6,6 @@ chatvault-*.zip
 
 # Local publishing notes
 PUBLISHING.md
+
+# Claude Code local settings
+.claude/settings.local.json

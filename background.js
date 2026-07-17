@@ -59,8 +59,17 @@ function sanitizeForFilename(text) {
     .trim();
   // Slice by code points, not UTF-16 units, so we never cut an emoji's
   // surrogate pair in half (encodeURIComponent throws on lone surrogates).
+  const chars = Array.from(cleaned);
+  let slug = chars.slice(0, 60).join("");
+  // If we actually cut something, back off to the last full word so the
+  // filename doesn't end mid-word ("…implement authenti"). A single word
+  // longer than the limit keeps the hard cut.
+  if (chars.length > 60) {
+    const lastSpace = slug.lastIndexOf(" ");
+    if (lastSpace > 0) slug = slug.slice(0, lastSpace);
+  }
   // Trailing dots are stripped last: "name." is illegal on Windows.
-  return Array.from(cleaned).slice(0, 60).join("").trim().replace(/\.+$/, "");
+  return slug.trim().replace(/\.+$/, "");
 }
 
 // Local-time timestamp, filesystem-safe (no colons). Filenames should match
