@@ -150,6 +150,11 @@
         tag === "button" ||
         tag === "svg" ||
         tag === "mat-icon" || // Gemini icon ligatures ("thumb_up", "more_vert")
+        tag === "follow-up" || // Gemini suggestion chips (single follow-up…)
+        tag === "elicitations" || // …and the "Want to explore further?" set
+        // Gemini's own copy/export helper text (e.g. "1.Title:Step 1."),
+        // display:none in the live page but present in the DOM.
+        el.classList.contains("only-show-to-message-actions") ||
         el.classList.contains(BTN_CLASS) ||
         el.classList.contains(WRAP_CLASS) ||
         el.getAttribute("aria-hidden") === "true" ||
@@ -161,6 +166,16 @@
         el.hasAttribute("hidden")
       ) {
         return "";
+      }
+
+      // Gemini math: the TeX source lives in the wrapper's data-math
+      // attribute; the rendered KaTeX inside is aria-hidden and would
+      // otherwise be dropped entirely.
+      const tex = el.getAttribute("data-math");
+      if (tex != null) {
+        return el.classList.contains("math-inline")
+          ? `$${tex}$`
+          : `\n\n$$\n${tex}\n$$\n\n`;
       }
 
       const inner = (depth = listDepth) =>
@@ -196,6 +211,48 @@
           const lang =
             codeEl && /language-([\w+#.-]+)/.exec(codeEl.className || "");
           return `\n\n\`\`\`${lang ? lang[1] : ""}\n${text}\n\`\`\`\n\n`;
+        }
+        // Gemini's step-by-step <sequence> widget renders each step three
+        // ways (number badge, title + "Step N" subtitle, hidden export
+        // header); flatten it to a clean ordered list of "**Title:** body".
+        case "sequence": {
+          const items = Array.from(el.querySelectorAll(".sequence-event")).map(
+            (ev, i) => {
+              const titleEl = ev.querySelector(".sequence-event-title");
+              const bodyEl =
+                ev.querySelector(
+                  ".sequence-event-description structured-node-sequence"
+                ) || ev.querySelector(".sequence-event-description");
+              const head = titleEl
+                ? `**${titleEl.textContent.trim()}:** `
+                : "";
+              const raw = bodyEl ? walk(bodyEl, listDepth + 1).trim() : "";
+              const indent = "  ".repeat(listDepth);
+              const body = (head + raw)
+                .replace(/\n{3,}/g, "\n")
+                .trim()
+                .split("\n")
+                .map((l, j) => (j === 0 ? l : `${indent}  ${l}`))
+                .join("\n");
+              return `${indent}${i + 1}. ${body}`;
+            }
+          );
+          return items.length ? `\n\n${items.join("\n")}\n\n` : "";
+        }
+        // Gemini wraps code in a <code-block> custom element whose header bar
+        // holds the language label ("C++") and copy/download buttons — walking
+        // it naively leaks that label as stray text before the fence.
+        case "code-block": {
+          const langLabel = el.querySelector(".code-block-decoration span");
+          const codeEl = el.querySelector("pre code, pre");
+          if (!codeEl) return "";
+          const text = codeEl.textContent.replace(/\n+$/, "");
+          const lang = (langLabel ? langLabel.textContent.trim() : "")
+            .toLowerCase()
+            .replace(/^c\+\+$/, "cpp")
+            .replace(/^c#$/, "csharp")
+            .replace(/\s+/g, "");
+          return `\n\n\`\`\`${lang}\n${text}\n\`\`\`\n\n`;
         }
         case "h1":
         case "h2":
