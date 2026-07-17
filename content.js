@@ -29,10 +29,13 @@
    * ------------------------------------------------------------------ */
   const SELECTORS = {
     "claude.ai": {
-      // Claude renders messages with data-testid attributes.
-      assistant: '[data-testid="assistant-message"], div.font-claude-message',
+      // Assistant messages use .font-claude-response (verified 2026-07);
+      // the older data-testid/.font-claude-message forms stay as fallbacks.
+      assistant:
+        'div.font-claude-response, [data-testid="assistant-message"], div.font-claude-message',
       user: '[data-testid="user-message"]',
-      content: ".prose, .font-claude-message, [class*='prose']",
+      content:
+        ".prose, .font-claude-response, .font-claude-message, [class*='prose']",
       // Anchor inside the copy/retry action row under each answer; our button
       // is appended to that row's container.
       actionBar: '[data-testid="action-bar-copy"]',
