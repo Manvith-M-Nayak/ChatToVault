@@ -94,7 +94,7 @@ files are unique and chronologically sortable.
 | `content.js`   | Scrapes the DOM and injects buttons. Uses a `MutationObserver` for streaming. |
 | `background.js`| Builds the note and does the REST API `PUT` (off-page, to dodge CORS).         |
 | `styles.css`   | Minimal button styling that inherits the page theme.                          |
-| `options.html` / `options.js` | Settings UI, stored in `chrome.storage.sync`.                  |
+| `options.html` / `options.js` | Settings UI, stored in `chrome.storage.local`.                 |
 
 ### Updating selectors
 
@@ -106,6 +106,7 @@ site-specific DOM query lives there, clearly labeled.
 
 ## Privacy
 
-No telemetry. No external servers. No API keys in code. Your API key lives only
-in `chrome.storage.sync`, and notes go straight from your browser to your local
-Obsidian instance.
+No telemetry. No external servers. No API keys in code. Your API key is stored
+in `chrome.storage.local` — it never leaves this machine and is never synced to
+the browser vendor's servers — and notes go straight from your browser to your
+local Obsidian instance.

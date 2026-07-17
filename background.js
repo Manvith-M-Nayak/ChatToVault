@@ -21,9 +21,22 @@ const DEFAULTS = {
 /* ---------------------------------------------------------------- *
  * SETTINGS
  * ---------------------------------------------------------------- */
+/* Settings live in chrome.storage.local: sync storage is uploaded to the
+ * browser vendor's servers and replicated to every signed-in device, which is
+ * no place for an API key. Earlier versions used sync, so on first read we
+ * migrate any old settings across and scrub the key from sync. */
 function getSettings() {
   return new Promise((resolve) => {
-    chrome.storage.sync.get(DEFAULTS, (items) => resolve(items));
+    chrome.storage.local.get(DEFAULTS, (local) => {
+      if (local.apiKey) return resolve(local);
+      chrome.storage.sync.get(DEFAULTS, (synced) => {
+        if (synced.apiKey) {
+          chrome.storage.local.set(synced);
+          chrome.storage.sync.remove("apiKey");
+        }
+        resolve(synced);
+      });
+    });
   });
 }
 
