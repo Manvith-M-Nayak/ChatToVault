@@ -67,6 +67,9 @@
         width: auto;
         margin: 0;
       }
+      .warning {
+        color: #b26a00;
+      }
     </style>
   </head>
   <body>
@@ -125,6 +128,24 @@
     </label>
     <label class="check">
       <input type="checkbox" id="fmUrl" /> url — link back to the chat
+    </label>
+
+    <label>Note sections</label>
+    <div class="hint">
+      Parts of the note body; untick to leave one out.
+    </div>
+    <label class="check">
+      <input type="checkbox" id="noteQHeading" /> "Question" heading
+    </label>
+    <label class="check">
+      <input type="checkbox" id="noteQText" /> question text (same as the note title)
+    </label>
+    <div class="hint warning" id="noteQTextWarning" hidden>
+      ⚠ Note titles keep only the first 60 characters of the question. With
+      this off, anything past that is not saved anywhere in the note.
+    </div>
+    <label class="check">
+      <input type="checkbox" id="noteAHeading" /> "Answer" heading
     </label>
 
     <div>

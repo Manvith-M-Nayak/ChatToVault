@@ -23,6 +23,10 @@ const DEFAULTS = {
   fmCreated: true,
   fmSource: true,
   fmUrl: true,
+  // Note body sections — each can be toggled in options.
+  noteQHeading: true, // "## Question" heading
+  noteQText: true, // the question text (duplicates the note title)
+  noteAHeading: true, // "## Answer" heading
 };
 
 /* ---------------------------------------------------------------- *
@@ -117,18 +121,17 @@ function buildNote({ question, answer, source, url }, date, settings) {
     ? ["---", ...fields, "---"].join("\n")
     : "";
 
-  // No H1: in Obsidian the filename is the note title, and the full question
-  // lives under "## Question" — a heading would only duplicate (and truncate).
-  const body = [
-    "## Question",
-    "",
-    question || "_(no question captured)_",
-    "",
-    "## Answer",
-    "",
-    answer || "",
-    "",
-  ].join("\n");
+  // No H1: in Obsidian the filename is the note title. Each body section is
+  // individually toggleable — e.g. the question text duplicates the title, so
+  // users may drop it (though the title truncates at 60 chars and the full
+  // question then lives nowhere).
+  const parts = [];
+  if (settings.noteQHeading) parts.push("## Question", "");
+  if (settings.noteQText)
+    parts.push(question || "_(no question captured)_", "");
+  if (settings.noteAHeading) parts.push("## Answer", "");
+  parts.push(answer || "", "");
+  const body = parts.join("\n");
 
   return frontmatter ? `${frontmatter}\n\n${body}` : body;
 }
@@ -423,12 +426,14 @@ async function saveToNotion(data, settings, date) {
     if (settings.fmUrl) meta.push(...richText(data.url, null, data.url));
     children.push({ object: "block", type: "paragraph", paragraph: { rich_text: meta } });
   }
-  children.push(
-    { object: "block", type: "heading_2", heading_2: { rich_text: richText("Question") } },
-    ...markdownToBlocks(data.question || "(no question captured)"),
-    { object: "block", type: "heading_2", heading_2: { rich_text: richText("Answer") } },
-    ...markdownToBlocks(data.answer || "")
-  );
+  // Same body-section toggles as the Obsidian note.
+  if (settings.noteQHeading)
+    children.push({ object: "block", type: "heading_2", heading_2: { rich_text: richText("Question") } });
+  if (settings.noteQText)
+    children.push(...markdownToBlocks(data.question || "(no question captured)"));
+  if (settings.noteAHeading)
+    children.push({ object: "block", type: "heading_2", heading_2: { rich_text: richText("Answer") } });
+  children.push(...markdownToBlocks(data.answer || ""));
 
   const headers = {
     Authorization: `Bearer ${token}`,

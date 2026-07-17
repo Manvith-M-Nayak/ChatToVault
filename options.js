@@ -15,9 +15,15 @@ const DEFAULTS = {
   fmCreated: true,
   fmSource: true,
   fmUrl: true,
+  // Note body section toggles.
+  noteQHeading: true,
+  noteQText: true,
+  noteAHeading: true,
 };
 
 const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl"];
+const BODY_TOGGLES = ["noteQHeading", "noteQText", "noteAHeading"];
+const ALL_TOGGLES = [...FM_TOGGLES, ...BODY_TOGGLES];
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,7 +33,14 @@ function fillForm(items) {
   $("folder").value = items.folder;
   $("notionToken").value = items.notionToken || "";
   $("notionParent").value = items.notionParent || "";
-  FM_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
+  ALL_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
+  updateTitleWarning();
+}
+
+// Dropping the question text leaves the (60-char-truncated) title as the only
+// record of the question — warn while that box is unticked.
+function updateTitleWarning() {
+  $("noteQTextWarning").hidden = $("noteQText").checked;
 }
 
 // Populate the form with stored values (or defaults).
@@ -44,7 +57,7 @@ function save() {
     notionToken: $("notionToken").value.trim(),
     notionParent: $("notionParent").value.trim(),
   };
-  FM_TOGGLES.forEach((k) => (settings[k] = $(k).checked));
+  ALL_TOGGLES.forEach((k) => (settings[k] = $(k).checked));
 
   chrome.storage.local.set(settings, () => {
     const status = $("status");
@@ -61,3 +74,4 @@ function save() {
 
 document.addEventListener("DOMContentLoaded", load);
 $("save").addEventListener("click", save);
+$("noteQText").addEventListener("change", updateTitleWarning);
