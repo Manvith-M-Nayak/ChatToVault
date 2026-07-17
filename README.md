@@ -44,6 +44,8 @@ frontmatter block.
 
 ### 1. Install & configure Obsidian's Local REST API plugin
 
+_Skip to step 2 if you only save to Notion._
+
 1. In Obsidian: **Settings → Community plugins → Browse**, search for
    **Local REST API**, install and enable it.
 2. Open the plugin's settings.
@@ -102,7 +104,9 @@ under the title; `created` is tracked by Notion itself; `tags` doesn't apply.
    - **Saving…** → **Saved ✓** on success.
    - **Failed — retry** on error (check the API key / that Obsidian is running;
      open the page DevTools console for the exact error).
-5. Check your vault — a new `.md` file appears in the `Chats/` folder.
+5. Check your vault — a new `.md` file appears in the `Chats/` folder. If
+   saving to Notion, a new subpage appears under your parent page instead
+   (or as well, with **Both**).
 
 ---
 
@@ -112,7 +116,7 @@ under the title; `created` is tracked by Notion itself; `tags` doesn't apply.
 | -------------- | ----------------------------------------------------------------------------- |
 | `manifest.json`| MV3 manifest: permissions, host permissions, content script + worker wiring.  |
 | `content.js`   | Scrapes the DOM and injects buttons. Uses a `MutationObserver` for streaming. |
-| `background.js`| Builds the note and does the REST API `PUT` (off-page, to dodge CORS).         |
+| `background.js`| Builds the note; PUTs Markdown to Obsidian and/or creates Notion pages (off-page, to dodge CORS). |
 | `styles.css`   | Minimal button styling that inherits the page theme.                          |
 | `options.html` / `options.js` | Settings UI, stored in `chrome.storage.local`.                 |
 
