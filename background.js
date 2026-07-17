@@ -31,14 +31,16 @@ function getSettings() {
  * FILENAME + PATH BUILDING
  * ---------------------------------------------------------------- */
 
-// Strip characters illegal in filenames; collapse whitespace.
+// Strip characters illegal in filenames; collapse whitespace. May return ""
+// if the input is entirely illegal characters — callers pick their own fallback.
 function sanitizeForFilename(text) {
-  return (text || "untitled")
+  const cleaned = (text || "")
     .replace(/[\\/:*?"<>|#^[\]]/g, "") // illegal / Obsidian-unfriendly chars
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 60)
     .trim();
+  // Slice by code points, not UTF-16 units, so we never cut an emoji's
+  // surrogate pair in half (encodeURIComponent throws on lone surrogates).
+  return Array.from(cleaned).slice(0, 60).join("").trim();
 }
 
 // ISO timestamp, filesystem-safe (no colons).
@@ -49,7 +51,7 @@ function fileTimestamp(d) {
 // Build "folder/slug timestamp.md" then URL-encode each segment but KEEP the
 // slashes that separate folders, so the REST API nests correctly.
 function buildVaultPath(folder, question, date) {
-  const slug = sanitizeForFilename(question);
+  const slug = sanitizeForFilename(question) || "untitled";
   const filename = `${slug} ${fileTimestamp(date)}.md`;
 
   // Normalize folder: trim, ensure no leading slash, allow nested folders.
@@ -70,9 +72,10 @@ function buildVaultPath(folder, question, date) {
  * NOTE BUILDING
  * ---------------------------------------------------------------- */
 
-// Escape a value for safe single-line YAML.
+// Escape a value for safe single-line YAML. Backslashes first, then quotes,
+// so a literal \ never turns into an invalid YAML escape sequence.
 function yamlString(s) {
-  return `"${String(s).replace(/"/g, '\\"')}"`;
+  return `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 function buildNote({ question, answer, source, url }, date) {

@@ -99,8 +99,10 @@
     assistantEl.setAttribute(FLAG_ATTR, "1");
 
     const btn = makeButton(assistantEl);
-    // Append after the message block so it sits under the answer.
-    assistantEl.appendChild(btn);
+    // Insert as a SIBLING after the message block, never inside it — otherwise
+    // extractText's whole-block fallback would scrape the button label into
+    // the saved answer.
+    assistantEl.insertAdjacentElement("afterend", btn);
   }
 
   function scanAndInject() {
