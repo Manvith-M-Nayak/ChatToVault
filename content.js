@@ -299,22 +299,31 @@
     return btn;
   }
 
-  // Find this answer's copy/retry action row so our button sits with the
-  // site's own buttons. Walk up from the message, but stop before an ancestor
+  // Find this answer's copy button so our buttons sit with the site's own
+  // action icons. Walk up from the message, but stop before an ancestor
   // that spans multiple messages — that would find another answer's bar.
-  function findActionBar(assistantEl) {
+  function findActionAnchor(assistantEl) {
     if (!SITE.actionBar) return null;
     let node = assistantEl;
     for (let i = 0; i < 6 && node; i++, node = node.parentElement) {
       if (node.querySelectorAll(SITE.assistant).length > 1) return null;
       const anchor = node.querySelector(SITE.actionBar);
-      if (anchor) return anchor.parentElement;
+      if (anchor) return anchor;
     }
     return null;
   }
 
+  // Gemini's action row has a flex spacer before its overflow menu, so
+  // appending to the row strands our buttons on the far right; insert right
+  // after the copy button there instead. Other sites keep append order.
+  function placeInBar(anchor, el) {
+    if (HOST === "gemini.google.com") anchor.after(el);
+    else anchor.parentElement.appendChild(el);
+  }
+
   function injectButton(assistantEl) {
-    const bar = findActionBar(assistantEl);
+    const anchor = findActionAnchor(assistantEl);
+    const bar = anchor && anchor.parentElement;
     const dests = enabledDests();
     const destsKey = dests.join(",");
 
@@ -322,7 +331,7 @@
     if (existing && existing.isConnected && existing.dataset.dests === destsKey) {
       // The action bar often renders only after streaming ends; if the buttons
       // were placed via the fallback, migrate them into the bar once it exists.
-      if (bar && !bar.contains(existing)) bar.appendChild(existing);
+      if (bar && !bar.contains(existing)) placeInBar(anchor, existing);
       return;
     }
     // Settings changed which destinations exist: rebuild from scratch.
@@ -340,7 +349,7 @@
     buttons.set(assistantEl, wrap);
 
     if (bar) {
-      bar.appendChild(wrap);
+      placeInBar(anchor, wrap);
     } else {
       // Fallback: SIBLING after the message block, never inside it — otherwise
       // extractText's whole-block fallback would scrape the button labels into
