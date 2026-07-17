@@ -105,8 +105,6 @@ function yamlString(s) {
 }
 
 function buildNote({ question, answer, source, url }, date, settings) {
-  const title = sanitizeForFilename(question) || "AI Chat";
-
   // Only the properties the user enabled; no fields -> no frontmatter block.
   const fields = [];
   if (settings.fmCreated) fields.push(`created: ${date.toISOString()}`);
@@ -118,9 +116,9 @@ function buildNote({ question, answer, source, url }, date, settings) {
     ? ["---", ...fields, "---"].join("\n")
     : "";
 
+  // No H1: in Obsidian the filename is the note title, and the full question
+  // lives under "## Question" — a heading would only duplicate (and truncate).
   const body = [
-    `# ${title}`,
-    "",
     "## Question",
     "",
     question || "_(no question captured)_",

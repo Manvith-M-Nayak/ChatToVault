@@ -19,8 +19,6 @@ source: claude.ai
 url: "https://claude.ai/chat/…"
 ---
 
-# How do I center a div
-
 ## Question
 
 How do I center a div?
