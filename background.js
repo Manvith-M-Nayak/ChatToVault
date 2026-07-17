@@ -129,6 +129,9 @@ function buildNote({ question, answer, source, url }, date, settings) {
   if (settings.noteQHeading) parts.push("## Question", "");
   if (settings.noteQText)
     parts.push(question || "_(no question captured)_", "");
+  // Divider between the question and answer sections (only when a question
+  // section exists to divide from).
+  if (settings.noteQHeading || settings.noteQText) parts.push("---", "");
   if (settings.noteAHeading) parts.push("## Answer", "");
   parts.push(answer || "", "");
   const body = parts.join("\n");
@@ -431,6 +434,8 @@ async function saveToNotion(data, settings, date) {
     children.push({ object: "block", type: "heading_2", heading_2: { rich_text: richText("Question") } });
   if (settings.noteQText)
     children.push(...markdownToBlocks(data.question || "(no question captured)"));
+  if (settings.noteQHeading || settings.noteQText)
+    children.push({ object: "block", type: "divider", divider: {} });
   if (settings.noteAHeading)
     children.push({ object: "block", type: "heading_2", heading_2: { rich_text: richText("Answer") } });
   children.push(...markdownToBlocks(data.answer || ""));

@@ -8,6 +8,8 @@
 const $ = (id) => document.getElementById(id);
 
 const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl"];
+const BODY_TOGGLES = ["noteQHeading", "noteQText", "noteAHeading"];
+const ALL_TOGGLES = [...FM_TOGGLES, ...BODY_TOGGLES];
 const DEFAULTS = {
   apiKey: "",
   notionToken: "",
@@ -16,6 +18,9 @@ const DEFAULTS = {
   fmCreated: true,
   fmSource: true,
   fmUrl: true,
+  noteQHeading: true,
+  noteQText: true,
+  noteAHeading: true,
   lastSave: null,
 };
 
@@ -59,16 +64,24 @@ function renderLastSave(last) {
 function load() {
   chrome.storage.local.get(DEFAULTS, (items) => {
     renderStatus(items);
-    FM_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
+    ALL_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
     $("folder").value = items.folder;
     renderLastSave(items.lastSave);
+    updateTitleWarning();
   });
 }
 
-// Frontmatter toggles: write-through on change.
-FM_TOGGLES.forEach((k) => {
+// Dropping the question text leaves the (60-char-truncated) title as the only
+// record of the question — warn while that box is unticked.
+function updateTitleWarning() {
+  $("noteQTextWarning").hidden = $("noteQText").checked;
+}
+
+// Frontmatter + note-section toggles: write-through on change.
+ALL_TOGGLES.forEach((k) => {
   $(k).addEventListener("change", () => {
     chrome.storage.local.set({ [k]: $(k).checked });
+    updateTitleWarning();
   });
 });
 
