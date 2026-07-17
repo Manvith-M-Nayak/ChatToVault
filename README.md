@@ -1,7 +1,7 @@
 # ChatToVault
 
 A Chromium (Manifest V3) browser extension that adds save buttons under every
-AI response on **claude.ai** and **chatgpt.com** — **Save to Obsidian**,
+AI response on **claude.ai**, **chatgpt.com**, and **gemini.google.com** — **Save to Obsidian**,
 **Save to Notion**, or both, depending on which destinations you configure.
 Each click saves that one answer — plus the question directly above it — as
 its own Markdown note in your Obsidian vault or page in your Notion workspace.
@@ -93,8 +93,8 @@ under the title, and `created` is tracked by Notion itself.
 
 1. For Obsidian: make sure Obsidian is open with the Local REST API (HTTP)
    server enabled.
-2. Open **https://claude.ai** or **https://chatgpt.com** and view any
-   conversation.
+2. Open **https://claude.ai**, **https://chatgpt.com**, or
+   **https://gemini.google.com** and view any conversation.
 3. Under each AI response you'll see a save button per configured
    destination: **Save to Obsidian** when the Obsidian API key is set,
    **Save to Notion** when the Notion token + parent page are set — both
@@ -123,7 +123,7 @@ under the title, and `created` is tracked by Notion itself.
 
 ### Updating selectors
 
-If claude.ai or chatgpt.com change their markup and buttons stop appearing,
+If claude.ai, chatgpt.com, or gemini.google.com change their markup and buttons stop appearing,
 edit the `SELECTORS` constant at the top of **`content.js`** — every
 site-specific DOM query lives there, clearly labeled.
 
