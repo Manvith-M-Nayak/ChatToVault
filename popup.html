@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        width: 280px;
+        margin: 0;
+        padding: 14px 16px;
+        font-size: 13px;
+        color: #1a1a1a;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 10px;
+      }
+      .section {
+        border-top: 1px solid #eee;
+        padding: 10px 0;
+      }
+      .section-title {
+        font-weight: 600;
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .dest {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin: 4px 0;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #bbb;
+        flex: none;
+      }
+      .dot.on {
+        background: #2e7d32;
+      }
+      .dest .state {
+        margin-left: auto;
+        color: #888;
+        font-size: 12px;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 5px 0;
+        cursor: pointer;
+      }
+      .check input {
+        margin: 0;
+      }
+      input[type="text"] {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        font-size: 13px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      #lastSave {
+        color: #444;
+      }
+      #lastSave a {
+        color: #5b4bda;
+      }
+      #saveNote {
+        color: #2e7d32;
+        font-size: 12px;
+        margin-left: 6px;
+        visibility: hidden;
+      }
+      .footer {
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+        text-align: center;
+      }
+      .footer a {
+        color: #5b4bda;
+        text-decoration: none;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ChatToVault</h1>
+
+    <div class="section" style="border-top: none; padding-top: 0">
+      <div class="section-title">Destinations</div>
+      <div class="dest">
+        <span class="dot" id="dotObsidian"></span> Obsidian
+        <span class="state" id="stateObsidian">not configured</span>
+      </div>
+      <div class="dest">
+        <span class="dot" id="dotNotion"></span> Notion
+        <span class="state" id="stateNotion">not configured</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Note properties</div>
+      <label class="check"><input type="checkbox" id="fmCreated" /> created</label>
+      <label class="check"><input type="checkbox" id="fmSource" /> source</label>
+      <label class="check"><input type="checkbox" id="fmUrl" /> url</label>
+      <label class="check"><input type="checkbox" id="fmTags" /> tags (ai-chat)</label>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Obsidian folder <span id="saveNote">saved ✓</span></div>
+      <input type="text" id="folder" placeholder="Chats/" />
+    </div>
+
+    <div class="section">
+      <div class="section-title">Last save</div>
+      <div id="lastSave">No saves yet.</div>
+    </div>
+
+    <div class="footer">
+      <a id="openSettings">All settings…</a>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

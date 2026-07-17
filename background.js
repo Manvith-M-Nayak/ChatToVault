@@ -458,9 +458,24 @@ async function saveToNotion(data, settings, date) {
 async function handleSave(data, dest) {
   const settings = await getSettings();
   const date = new Date();
-  return dest === "notion"
-    ? saveToNotion(data, settings, date)
-    : saveToObsidian(data, settings, date);
+  const d = dest === "notion" ? "notion" : "obsidian";
+  const result =
+    d === "notion"
+      ? await saveToNotion(data, settings, date)
+      : await saveToObsidian(data, settings, date);
+
+  // Record for the popup's "last save" line. Notion returns a user-facing
+  // page URL; Obsidian's endpoint is an API URL, so only the title is shown.
+  chrome.storage.local.set({
+    lastSave: {
+      time: Date.now(),
+      dest: d,
+      title: sanitizeForFilename(data.question) || "AI Chat",
+      url: d === "notion" ? result : "",
+    },
+  });
+
+  return result;
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

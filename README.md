@@ -106,6 +106,8 @@ under the title; `created` is tracked by Notion itself; `tags` doesn't apply.
      running; open the page DevTools console for the exact error).
 5. Check the destination: a new `.md` file in your vault's `Chats/` folder,
    or a new subpage under your Notion parent page.
+6. Click the extension's toolbar icon — the popup shows destination status,
+   the frontmatter toggles, a quick folder field, and the last save.
 
 ---
 
@@ -117,7 +119,8 @@ under the title; `created` is tracked by Notion itself; `tags` doesn't apply.
 | `content.js`   | Converts rendered messages to Markdown, injects per-destination buttons. Uses a `MutationObserver` for streaming. |
 | `background.js`| Builds the note; PUTs Markdown to Obsidian and/or creates Notion pages (off-page, to dodge CORS). |
 | `styles.css`   | Minimal button styling that inherits the page theme.                          |
-| `options.html` / `options.js` | Settings UI, stored in `chrome.storage.local`.                 |
+| `options.html` / `options.js` | Full settings UI, stored in `chrome.storage.local`.            |
+| `popup.html` / `popup.js` | Toolbar popup: destination status, frontmatter toggles (instant save), Obsidian folder quick-edit, last save info. |
 
 ### Updating selectors
 
