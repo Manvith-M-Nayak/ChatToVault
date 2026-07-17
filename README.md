@@ -81,10 +81,11 @@ _Skip to step 2 if you only save to Notion._
 
 Only needed if **Save to** is Notion or Both:
 
-1. Go to **notion.so/my-integrations** → **New integration** (internal) → copy
-   the secret token into **Notion Integration Token**.
+1. Go to **notion.so/my-integrations** → **New connection** → select
+   **Access token** as the authentication method → copy the secret token into
+   **Notion Integration Token**.
 2. In Notion, open (or create) the page that should hold saved chats. Page
-   menu (•••) → **Connections** → add your integration.
+   menu (•••) → **Connections** → add your connection.
 3. Copy that page's URL into **Notion Parent Page** — the extension extracts
    the ID automatically. Each save creates a new subpage there.
 
