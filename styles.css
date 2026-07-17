@@ -5,7 +5,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 8px 0;
+  margin: 4px;
+  align-self: center;
   padding: 4px 10px;
   font-size: 12px;
   font-family: inherit;

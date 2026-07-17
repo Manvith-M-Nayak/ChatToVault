@@ -32,12 +32,16 @@
       assistant: '[data-testid="assistant-message"], div.font-claude-message',
       user: '[data-testid="user-message"]',
       content: ".prose, .font-claude-message, [class*='prose']",
+      // Anchor inside the copy/retry action row under each answer; our button
+      // is appended to that row's container.
+      actionBar: '[data-testid="action-bar-copy"]',
     },
     "chatgpt.com": {
       // ChatGPT tags every turn with data-message-author-role.
       assistant: '[data-message-author-role="assistant"]',
       user: '[data-message-author-role="user"]',
       content: ".markdown, .prose, [class*='markdown']",
+      actionBar: '[data-testid="copy-turn-action-button"]',
     },
   };
 
@@ -58,13 +62,144 @@
    * SCRAPING HELPERS
    * ------------------------------------------------------------------ */
 
-  // Extract clean visible text from a message element.
+  /* Convert a rendered message's HTML into Markdown so the saved note keeps
+   * code blocks, lists, links, tables, and emphasis — Obsidian notes are .md,
+   * and a flat innerText dump loses all of that structure. */
+  function htmlToMarkdown(rootEl) {
+    const walk = (node, listDepth) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        // Respect pre-wrap contexts (user prompts): keep their line breaks.
+        const ws =
+          node.parentElement &&
+          getComputedStyle(node.parentElement).whiteSpace;
+        return ws && ws.startsWith("pre")
+          ? node.nodeValue
+          : node.nodeValue.replace(/\s+/g, " ");
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return "";
+      const el = node;
+      const tag = el.tagName.toLowerCase();
+      if (
+        tag === "script" ||
+        tag === "style" ||
+        tag === "button" ||
+        tag === "svg" ||
+        el.classList.contains(BTN_CLASS) ||
+        el.getAttribute("aria-hidden") === "true"
+      ) {
+        return "";
+      }
+
+      const inner = (depth = listDepth) =>
+        Array.from(el.childNodes).map((n) => walk(n, depth)).join("");
+
+      switch (tag) {
+        case "br":
+          return "\n";
+        case "hr":
+          return "\n\n---\n\n";
+        case "strong":
+        case "b": {
+          const t = inner().trim();
+          return t ? `**${t}**` : "";
+        }
+        case "em":
+        case "i": {
+          const t = inner().trim();
+          return t ? `*${t}*` : "";
+        }
+        case "del":
+        case "s": {
+          const t = inner().trim();
+          return t ? `~~${t}~~` : "";
+        }
+        case "code":
+          // Inside <pre> the fence handler below owns the text.
+          if (el.closest("pre")) return el.textContent;
+          return "`" + el.textContent.trim() + "`";
+        case "pre": {
+          const codeEl = el.querySelector("code");
+          const text = (codeEl || el).textContent.replace(/\n+$/, "");
+          const lang =
+            codeEl && /language-([\w+#.-]+)/.exec(codeEl.className || "");
+          return `\n\n\`\`\`${lang ? lang[1] : ""}\n${text}\n\`\`\`\n\n`;
+        }
+        case "h1":
+        case "h2":
+        case "h3":
+        case "h4":
+        case "h5":
+        case "h6":
+          return `\n\n${"#".repeat(+tag[1])} ${inner().trim()}\n\n`;
+        case "p":
+          return `\n\n${inner().trim()}\n\n`;
+        case "blockquote": {
+          const t = inner().replace(/\n{3,}/g, "\n\n").trim();
+          return `\n\n${t.split("\n").map((l) => `> ${l}`).join("\n")}\n\n`;
+        }
+        case "ul":
+        case "ol": {
+          const indent = "  ".repeat(listDepth);
+          const items = Array.from(el.children)
+            .filter((c) => c.tagName === "LI")
+            .map((li, i) => {
+              const marker = tag === "ol" ? `${i + 1}.` : "-";
+              const body = Array.from(li.childNodes)
+                .map((n) => walk(n, listDepth + 1))
+                .join("")
+                .replace(/\n{3,}/g, "\n")
+                .trim()
+                .split("\n")
+                .map((l, j) => (j === 0 ? l : `${indent}  ${l}`))
+                .join("\n");
+              return `${indent}${marker} ${body}`;
+            });
+          return `\n\n${items.join("\n")}\n\n`;
+        }
+        case "a": {
+          const href = el.getAttribute("href") || "";
+          const t = inner().trim();
+          return /^https?:/.test(href) && t ? `[${t}](${href})` : t;
+        }
+        case "img":
+          return el.alt || "";
+        case "table": {
+          const rows = Array.from(el.querySelectorAll("tr"));
+          if (!rows.length) return "";
+          const cellText = (cell) =>
+            Array.from(cell.childNodes)
+              .map((n) => walk(n, 0))
+              .join("")
+              .replace(/\s*\n\s*/g, " ")
+              .replace(/\|/g, "\\|")
+              .trim();
+          const lines = rows.map(
+            (tr) =>
+              "| " + Array.from(tr.children).map(cellText).join(" | ") + " |"
+          );
+          lines.splice(1, 0, "|" + " --- |".repeat(rows[0].children.length));
+          return `\n\n${lines.join("\n")}\n\n`;
+        }
+        default: {
+          const isBlock = /^(div|section|article|main|aside|header|footer|figure|figcaption|details|summary|li|tr|td|th|thead|tbody)$/.test(
+            tag
+          );
+          return isBlock ? `\n${inner()}\n` : inner();
+        }
+      }
+    };
+
+    return walk(rootEl, 0)
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  // Extract a message element's content as Markdown.
   function extractText(messageEl) {
     if (!messageEl) return "";
     const contentEl = messageEl.querySelector(SITE.content) || messageEl;
-    // innerText preserves line breaks roughly as rendered, which is good
-    // enough for a Markdown note and avoids pulling in hidden UI text.
-    return (contentEl.innerText || "").trim();
+    return htmlToMarkdown(contentEl);
   }
 
   // Given an assistant message element, find the user message immediately
@@ -90,7 +225,7 @@
     const btn = document.createElement("button");
     btn.className = BTN_CLASS;
     btn.type = "button";
-    btn.textContent = "💾 Save to Obsidian";
+    btn.textContent = "Save to Obsidian";
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -99,21 +234,51 @@
     return btn;
   }
 
+  // Find this answer's copy/retry action row so our button sits with the
+  // site's own buttons. Walk up from the message, but stop before an ancestor
+  // that spans multiple messages — that would find another answer's bar.
+  function findActionBar(assistantEl) {
+    if (!SITE.actionBar) return null;
+    let node = assistantEl;
+    for (let i = 0; i < 6 && node; i++, node = node.parentElement) {
+      if (node.querySelectorAll(SITE.assistant).length > 1) return null;
+      const anchor = node.querySelector(SITE.actionBar);
+      if (anchor) return anchor.parentElement;
+    }
+    return null;
+  }
+
   function injectButton(assistantEl) {
+    const bar = findActionBar(assistantEl);
+
     const existing = buttons.get(assistantEl);
-    if (existing && existing.isConnected) return;
+    if (existing && existing.isConnected) {
+      // The action bar often renders only after streaming ends; if the button
+      // was placed via the fallback, migrate it into the bar once it exists.
+      if (bar && !bar.contains(existing)) bar.appendChild(existing);
+      return;
+    }
 
     const btn = makeButton(assistantEl);
     buttons.set(assistantEl, btn);
-    // Insert as a SIBLING after the message block, never inside it — otherwise
-    // extractText's whole-block fallback would scrape the button label into
-    // the saved answer.
-    assistantEl.insertAdjacentElement("afterend", btn);
+    if (bar) {
+      bar.appendChild(btn);
+    } else {
+      // Fallback: SIBLING after the message block, never inside it — otherwise
+      // extractText's whole-block fallback would scrape the button label into
+      // the saved answer.
+      assistantEl.insertAdjacentElement("afterend", btn);
+    }
   }
 
   function scanAndInject() {
-    const assistants = document.querySelectorAll(SITE.assistant);
-    assistants.forEach(injectButton);
+    // The selector list can match both a message block AND a wrapper nested
+    // inside it (e.g. [data-testid="assistant-message"] containing
+    // .font-claude-message) — that produced two buttons per answer. Only the
+    // outermost match per message gets a button.
+    Array.from(document.querySelectorAll(SITE.assistant))
+      .filter((el) => !el.parentElement?.closest(SITE.assistant))
+      .forEach(injectButton);
   }
 
   /* ------------------------------------------------------------------ *
@@ -143,7 +308,7 @@
         btn.disabled = false;
         break;
       default:
-        btn.textContent = "💾 Save to Obsidian";
+        btn.textContent = "Save to Obsidian";
         btn.disabled = false;
     }
   }

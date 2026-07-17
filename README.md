@@ -78,7 +78,7 @@ sortable. The frontmatter `created` field keeps the exact UTC instant.
 1. Make sure Obsidian is open with the Local REST API (HTTP) server enabled.
 2. Open **https://claude.ai** or **https://chatgpt.com** and view any
    conversation.
-3. Under each AI response you'll see a **💾 Save to Obsidian** button.
+3. Under each AI response you'll see a **Save to Obsidian** button.
 4. Click it. The label cycles:
    - **Saving…** → **Saved ✓** on success.
    - **Failed — retry** on error (check the API key / that Obsidian is running;
