@@ -26,6 +26,13 @@
   transition: opacity 0.15s ease, background 0.15s ease;
 }
 
+/* Monochrome brand logo; inherits button color via currentColor. */
+.chattovault-logo {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
 /* Claude's action-bar icons are smaller than ChatGPT's; match them there
    and leave ChatGPT sizing untouched. */
 .chattovault-site-claude .chattovault-btn {
@@ -34,6 +41,11 @@
   gap: 4px;
   margin: 2px;
   border-radius: 5px;
+}
+
+.chattovault-site-claude .chattovault-logo {
+  width: 14px;
+  height: 14px;
 }
 
 .chattovault-btn:hover {
