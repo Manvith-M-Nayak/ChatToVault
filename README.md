@@ -86,7 +86,8 @@ both. A save button appears for each one you fill in.
 
 Notion pages get the question/answer as native blocks (headings, code blocks,
 lists, tables). Of the frontmatter toggles, `source` and `url` become a line
-under the title; `created` is tracked by Notion itself; `tags` doesn't apply.
+under the title, `tags` renders as a code-styled "Tags: ai-chat" line, and
+`created` is tracked by Notion itself.
 
 ---
 
