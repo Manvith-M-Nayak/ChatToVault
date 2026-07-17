@@ -24,8 +24,9 @@
    * For each site we need:
    *   assistant : selector matching one assistant (AI) message block.
    *   user      : selector matching one user message block.
-   *   content   : selector (relative to a message block) for the rendered
-   *               text. Falls back to the block itself if not found.
+   *   content   : comma-separated selectors (relative to a message block) for
+   *               the rendered text, tried in priority order; falls back to
+   *               the block itself if none match.
    * ------------------------------------------------------------------ */
   const SELECTORS = {
     "claude.ai": {
@@ -52,7 +53,11 @@
       // element and each prompt a <user-query> element.
       assistant: "model-response",
       user: "user-query",
-      content: "message-content, .markdown, .query-text",
+      // Priority order (see extractText): rendered markdown inside the answer
+      // body first, the prompt's text block for user turns, then the bare
+      // message container — never the whole element, whose chrome carries
+      // "You said" / "Gemini said" screen-reader labels.
+      content: "message-content .markdown, .query-text, message-content",
       // Copy lives in the <message-actions> row under each answer; anchor on
       // its copy button (custom element, with data-test-id fallback).
       actionBar: 'copy-button, [data-test-id="copy-button"]',
@@ -144,9 +149,16 @@
         tag === "style" ||
         tag === "button" ||
         tag === "svg" ||
+        tag === "mat-icon" || // Gemini icon ligatures ("thumb_up", "more_vert")
         el.classList.contains(BTN_CLASS) ||
         el.classList.contains(WRAP_CLASS) ||
-        el.getAttribute("aria-hidden") === "true"
+        el.getAttribute("aria-hidden") === "true" ||
+        // Screen-reader-only labels ("You said", "Gemini said") that a flat
+        // scrape would leak into the note.
+        el.classList.contains("cdk-visually-hidden") ||
+        el.classList.contains("visually-hidden") ||
+        el.classList.contains("sr-only") ||
+        el.hasAttribute("hidden")
       ) {
         return "";
       }
@@ -256,11 +268,18 @@
       .trim();
   }
 
-  // Extract a message element's content as Markdown.
+  // Extract a message element's content as Markdown. SITE.content is a
+  // priority list: a comma-joined querySelector would return the first match
+  // in *document* order (an ancestor wrapper always wins), so try each
+  // selector in turn and take the first that hits.
   function extractText(messageEl) {
     if (!messageEl) return "";
-    const contentEl = messageEl.querySelector(SITE.content) || messageEl;
-    return htmlToMarkdown(contentEl);
+    let contentEl = null;
+    for (const sel of SITE.content.split(",")) {
+      contentEl = messageEl.querySelector(sel.trim());
+      if (contentEl) break;
+    }
+    return htmlToMarkdown(contentEl || messageEl);
   }
 
   // Given an assistant message element, find the user message immediately
