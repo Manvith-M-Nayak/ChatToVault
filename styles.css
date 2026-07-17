@@ -50,6 +50,13 @@
   height: 14px;
 }
 
+/* Gemini has light + dark themes, so hardcoded white would vanish on light;
+   follow the page text color like Claude and stay subtle. */
+.chattovault-site-gemini .chattovault-btn {
+  color: currentColor;
+  opacity: 0.6;
+}
+
 .chattovault-btn:hover {
   opacity: 1;
   background: rgba(127, 127, 127, 0.12);
