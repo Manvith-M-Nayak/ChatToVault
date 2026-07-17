@@ -350,14 +350,24 @@
   function injectButton(assistantEl) {
     const anchor = findActionAnchor(assistantEl);
     const bar = anchor && anchor.parentElement;
+
+    // All three sites render the copy/action row only once an answer has
+    // finished generating, so its absence means the model is still thinking
+    // or streaming — keep our buttons hidden until it appears (and tear down
+    // any already-placed ones, e.g. when a regeneration restarts the turn).
+    if (!bar) {
+      const placed = buttons.get(assistantEl);
+      if (placed) placed.remove();
+      return;
+    }
+
     const dests = enabledDests();
     const destsKey = dests.join(",");
 
     const existing = buttons.get(assistantEl);
     if (existing && existing.isConnected && existing.dataset.dests === destsKey) {
-      // The action bar often renders only after streaming ends; if the buttons
-      // were placed via the fallback, migrate them into the bar once it exists.
-      if (bar && !bar.contains(existing)) placeInBar(anchor, existing);
+      // React re-renders can rebuild the bar around us; re-dock if detached.
+      if (!bar.contains(existing)) placeInBar(anchor, existing);
       return;
     }
     // Settings changed which destinations exist: rebuild from scratch.
@@ -374,14 +384,7 @@
     dests.forEach((d) => wrap.appendChild(makeButton(assistantEl, d)));
     buttons.set(assistantEl, wrap);
 
-    if (bar) {
-      placeInBar(anchor, wrap);
-    } else {
-      // Fallback: SIBLING after the message block, never inside it — otherwise
-      // extractText's whole-block fallback would scrape the button labels into
-      // the saved answer.
-      assistantEl.insertAdjacentElement("afterend", wrap);
-    }
+    placeInBar(anchor, wrap);
   }
 
   function scanAndInject() {

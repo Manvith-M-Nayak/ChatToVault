@@ -64,9 +64,9 @@ function sanitizeForFilename(text) {
   return slug.trim().replace(/\.+$/, "");
 }
 
-// Local-time timestamp, filesystem-safe (no colons). Filenames should match
-// the user's clock; the frontmatter `created` field keeps the exact UTC
-// instant. Milliseconds keep rapid saves collision-free.
+// Local-time timestamp, filesystem-safe (no colons). Only used as a
+// last-resort collision fallback — the created instant normally lives in the
+// frontmatter `created` field, not the filename.
 function fileTimestamp(d) {
   const p = (n, w = 2) => String(n).padStart(w, "0");
   return (
@@ -75,11 +75,12 @@ function fileTimestamp(d) {
   );
 }
 
-// Build "folder/slug timestamp.md" then URL-encode each segment but KEEP the
-// slashes that separate folders, so the REST API nests correctly.
-function buildVaultPath(folder, question, date) {
+// Build "folder/slug.md" (plus an optional collision suffix) then URL-encode
+// each segment but KEEP the slashes that separate folders, so the REST API
+// nests correctly.
+function buildVaultPath(folder, question, suffix) {
   const slug = sanitizeForFilename(question) || "untitled";
-  const filename = `${slug} ${fileTimestamp(date)}.md`;
+  const filename = `${slug}${suffix ? ` ${suffix}` : ""}.md`;
 
   // Normalize folder: trim, ensure no leading slash, allow nested folders.
   const cleanFolder = (folder || "")
@@ -341,11 +342,29 @@ async function saveToObsidian(data, settings, date) {
   // plugin UIs present it that way; we add the scheme ourselves below.
   const apiKey = settings.apiKey.replace(/^Bearer\s+/i, "");
 
-  const path = buildVaultPath(settings.folder, data.question, date);
   const note = buildNote(data, date, settings);
 
   // Strip any trailing slash on the base URL to avoid a double slash.
   const base = settings.restUrl.replace(/\/+$/, "");
+
+  // Filenames are just the question slug (the created time lives in the
+  // frontmatter), so re-saving the same question would PUT over the old note.
+  // Probe for a free name: "slug.md", then "slug 2.md", "slug 3.md", …, and
+  // as a last resort a timestamped name that cannot collide.
+  let path = buildVaultPath(settings.folder, data.question);
+  for (let n = 2; ; n++) {
+    const probe = await fetch(`${base}/vault/${path}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    }).catch(() => null);
+    if (probe && probe.status === 404) break; // name is free — use it
+    if (!probe || n > 20) {
+      // Probe failed or absurd duplicate count: timestamped name can't collide.
+      path = buildVaultPath(settings.folder, data.question, fileTimestamp(date));
+      break;
+    }
+    path = buildVaultPath(settings.folder, data.question, n);
+  }
+
   const endpoint = `${base}/vault/${path}`;
 
   const res = await fetch(endpoint, {
