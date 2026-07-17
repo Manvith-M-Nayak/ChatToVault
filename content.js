@@ -313,12 +313,19 @@
     return null;
   }
 
-  // Gemini's action row has a flex spacer before its overflow menu, so
-  // appending to the row strands our buttons on the far right; insert right
-  // after the copy button there instead. Other sites keep append order.
+  // Gemini's action row has a flex spacer before its right edge, so appending
+  // to the row strands our buttons on the far right. Sit just after its
+  // three-dot "more actions" menu instead (falling back to the copy button if
+  // that menu isn't found). Other sites keep append order.
   function placeInBar(anchor, el) {
-    if (HOST === "gemini.google.com") anchor.after(el);
-    else anchor.parentElement.appendChild(el);
+    if (HOST === "gemini.google.com") {
+      const more = anchor.parentElement.querySelector(
+        '[data-test-id="more-menu-button"], .more-menu-button, message-actions-menu-button'
+      );
+      (more || anchor).after(el);
+    } else {
+      anchor.parentElement.appendChild(el);
+    }
   }
 
   function injectButton(assistantEl) {
