@@ -71,7 +71,6 @@ _Skip to step 2 if you only save to Notion._
 1. Click the extension's **Details → Extension options** (or right-click the
    icon → **Options**).
 2. Fill in:
-   - **Save to** — Obsidian (default), Notion, or Both.
    - **Local REST API URL** — default `http://127.0.0.1:27123`.
    - **API Key** — paste the key from step 1.4.
    - **Target Vault Folder** — default `Chats/`.
@@ -79,7 +78,7 @@ _Skip to step 2 if you only save to Notion._
 
 ### 4. (Optional) Notion setup
 
-Only needed if **Save to** is Notion or Both:
+Only needed if you want a **Save to Notion** button:
 
 1. Go to **notion.so/my-integrations** → **New connection** → select
    **Access token** as the authentication method → copy the secret token into
@@ -100,7 +99,10 @@ under the title; `created` is tracked by Notion itself; `tags` doesn't apply.
 1. Make sure Obsidian is open with the Local REST API (HTTP) server enabled.
 2. Open **https://claude.ai** or **https://chatgpt.com** and view any
    conversation.
-3. Under each AI response you'll see a **Save to Obsidian** button.
+3. Under each AI response you'll see a save button per configured
+   destination: **Save to Obsidian** when the Obsidian API key is set,
+   **Save to Notion** when the Notion token + parent page are set — both
+   buttons when both are configured.
 4. Click it. The label cycles:
    - **Saving…** → **Saved ✓** on success.
    - **Failed — retry** on error (check the API key / that Obsidian is running;

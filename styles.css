@@ -1,6 +1,12 @@
 /* ChatToVault — minimal, unobtrusive button styling.
    Inherits page font/theme via currentColor and transparent background. */
 
+.chattovault-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .chattovault-btn {
   display: inline-flex;
   align-items: center;

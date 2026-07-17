@@ -52,6 +52,43 @@
 
   const BTN_CLASS = "chattovault-btn";
 
+  const WRAP_CLASS = "chattovault-actions";
+
+  const LABELS = {
+    obsidian: "Save to Obsidian",
+    notion: "Save to Notion",
+  };
+
+  // Which destinations have their API settings filled in. One button per
+  // configured destination; both configured -> both buttons. Kept in sync via
+  // storage so editing options rebuilds buttons without a page refresh.
+  const config = { obsidian: false, notion: false };
+  const CONFIG_KEYS = { apiKey: "", notionToken: "", notionParent: "" };
+
+  function enabledDests() {
+    const dests = [];
+    if (config.obsidian) dests.push("obsidian");
+    if (config.notion) dests.push("notion");
+    // Nothing configured yet: show the Obsidian button; clicking it surfaces
+    // the "no API key" error that points the user at the options page.
+    return dests.length ? dests : ["obsidian"];
+  }
+
+  function refreshConfig(then) {
+    chrome.storage.local.get(CONFIG_KEYS, (items) => {
+      config.obsidian = Boolean(items.apiKey);
+      config.notion = Boolean(items.notionToken && items.notionParent);
+      if (then) then();
+    });
+  }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    if (changes.apiKey || changes.notionToken || changes.notionParent) {
+      refreshConfig(scanAndInject);
+    }
+  });
+
   // Map each assistant message element to its injected button. Both sites are
   // React apps that can drop our button on re-render while keeping the message
   // element itself, so we track the live button and re-inject when it is gone
@@ -85,6 +122,7 @@
         tag === "button" ||
         tag === "svg" ||
         el.classList.contains(BTN_CLASS) ||
+        el.classList.contains(WRAP_CLASS) ||
         el.getAttribute("aria-hidden") === "true"
       ) {
         return "";
@@ -221,15 +259,16 @@
    * BUTTON INJECTION
    * ------------------------------------------------------------------ */
 
-  function makeButton(assistantEl) {
+  function makeButton(assistantEl, dest) {
     const btn = document.createElement("button");
     btn.className = BTN_CLASS;
     btn.type = "button";
-    btn.textContent = "Save to Obsidian";
+    btn.dataset.label = LABELS[dest];
+    btn.textContent = LABELS[dest];
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      handleSave(btn, assistantEl);
+      handleSave(btn, assistantEl, dest);
     });
     return btn;
   }
@@ -250,24 +289,32 @@
 
   function injectButton(assistantEl) {
     const bar = findActionBar(assistantEl);
+    const dests = enabledDests();
+    const destsKey = dests.join(",");
 
     const existing = buttons.get(assistantEl);
-    if (existing && existing.isConnected) {
-      // The action bar often renders only after streaming ends; if the button
-      // was placed via the fallback, migrate it into the bar once it exists.
+    if (existing && existing.isConnected && existing.dataset.dests === destsKey) {
+      // The action bar often renders only after streaming ends; if the buttons
+      // were placed via the fallback, migrate them into the bar once it exists.
       if (bar && !bar.contains(existing)) bar.appendChild(existing);
       return;
     }
+    // Settings changed which destinations exist: rebuild from scratch.
+    if (existing) existing.remove();
 
-    const btn = makeButton(assistantEl);
-    buttons.set(assistantEl, btn);
+    const wrap = document.createElement("span");
+    wrap.className = WRAP_CLASS;
+    wrap.dataset.dests = destsKey;
+    dests.forEach((d) => wrap.appendChild(makeButton(assistantEl, d)));
+    buttons.set(assistantEl, wrap);
+
     if (bar) {
-      bar.appendChild(btn);
+      bar.appendChild(wrap);
     } else {
       // Fallback: SIBLING after the message block, never inside it — otherwise
-      // extractText's whole-block fallback would scrape the button label into
+      // extractText's whole-block fallback would scrape the button labels into
       // the saved answer.
-      assistantEl.insertAdjacentElement("afterend", btn);
+      assistantEl.insertAdjacentElement("afterend", wrap);
     }
   }
 
@@ -308,7 +355,7 @@
         btn.disabled = false;
         break;
       default:
-        btn.textContent = "Save to Obsidian";
+        btn.textContent = btn.dataset.label || "Save";
         btn.disabled = false;
     }
   }
@@ -341,7 +388,7 @@
     });
   }
 
-  async function handleSave(btn, assistantEl) {
+  async function handleSave(btn, assistantEl, dest) {
     setState(btn, "saving");
 
     const answer = await waitForStableText(assistantEl);
@@ -354,6 +401,7 @@
 
     const payload = {
       type: "chattovault-save",
+      dest,
       data: {
         question,
         answer,
@@ -417,6 +465,6 @@
     }
   }, 1000);
 
-  // Initial pass.
-  scanAndInject();
+  // Initial pass, once we know which destinations are configured.
+  refreshConfig(scanAndInject);
 })();

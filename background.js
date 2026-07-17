@@ -13,7 +13,6 @@
 "use strict";
 
 const DEFAULTS = {
-  destination: "obsidian", // "obsidian" | "notion" | "both"
   restUrl: "http://127.0.0.1:27123",
   apiKey: "",
   folder: "Chats/",
@@ -464,36 +463,18 @@ async function saveToNotion(data, settings, date) {
  * MESSAGE HANDLER
  * ---------------------------------------------------------------- */
 
-// Route the save to the destination(s) chosen in options. With "both", each
-// destination is attempted even if the other fails, and errors are combined.
-async function handleSave(data) {
+// Each button targets one destination; the content script sends it along.
+async function handleSave(data, dest) {
   const settings = await getSettings();
   const date = new Date();
-  const dest = settings.destination || "obsidian";
-
-  const errors = [];
-  let endpoint = "";
-  if (dest === "obsidian" || dest === "both") {
-    try {
-      endpoint = await saveToObsidian(data, settings, date);
-    } catch (err) {
-      errors.push(`Obsidian: ${err.message || err}`);
-    }
-  }
-  if (dest === "notion" || dest === "both") {
-    try {
-      endpoint = (await saveToNotion(data, settings, date)) || endpoint;
-    } catch (err) {
-      errors.push(`Notion: ${err.message || err}`);
-    }
-  }
-  if (errors.length) throw new Error(errors.join(" | "));
-  return endpoint;
+  return dest === "notion"
+    ? saveToNotion(data, settings, date)
+    : saveToObsidian(data, settings, date);
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === "chattovault-save") {
-    handleSave(msg.data)
+    handleSave(msg.data, msg.dest)
       .then((endpoint) => sendResponse({ ok: true, endpoint }))
       .catch((err) => sendResponse({ ok: false, error: String(err.message || err) }));
     // Return true to keep the message channel open for the async response.

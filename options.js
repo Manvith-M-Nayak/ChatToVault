@@ -7,7 +7,6 @@
 "use strict";
 
 const DEFAULTS = {
-  destination: "obsidian", // "obsidian" | "notion" | "both"
   restUrl: "http://127.0.0.1:27123",
   apiKey: "",
   folder: "Chats/",
@@ -25,7 +24,6 @@ const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl", "fmTags"];
 const $ = (id) => document.getElementById(id);
 
 function fillForm(items) {
-  $("destination").value = items.destination || DEFAULTS.destination;
   $("restUrl").value = items.restUrl;
   $("apiKey").value = items.apiKey;
   $("folder").value = items.folder;
@@ -46,7 +44,6 @@ function load() {
 // Persist the form values.
 function save() {
   const settings = {
-    destination: $("destination").value,
     restUrl: $("restUrl").value.trim() || DEFAULTS.restUrl,
     apiKey: $("apiKey").value.trim(),
     folder: $("folder").value.trim() || DEFAULTS.folder,
