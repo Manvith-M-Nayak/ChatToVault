@@ -19,6 +19,9 @@ const DEFAULTS = {
   noteQHeading: true,
   noteQText: true,
   noteAHeading: true,
+  // Section heading texts.
+  noteQLabel: "Question",
+  noteALabel: "Answer",
 };
 
 const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl"];
@@ -34,6 +37,8 @@ function fillForm(items) {
   $("notionToken").value = items.notionToken || "";
   $("notionParent").value = items.notionParent || "";
   ALL_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
+  $("noteQLabel").value = items.noteQLabel || "";
+  $("noteALabel").value = items.noteALabel || "";
   updateTitleWarning();
 }
 
@@ -56,6 +61,8 @@ function save() {
     folder: $("folder").value.trim() || DEFAULTS.folder,
     notionToken: $("notionToken").value.trim(),
     notionParent: $("notionParent").value.trim(),
+    noteQLabel: $("noteQLabel").value.trim() || DEFAULTS.noteQLabel,
+    noteALabel: $("noteALabel").value.trim() || DEFAULTS.noteALabel,
   };
   ALL_TOGGLES.forEach((k) => (settings[k] = $(k).checked));
 

@@ -21,6 +21,8 @@ const DEFAULTS = {
   noteQHeading: true,
   noteQText: true,
   noteAHeading: true,
+  noteQLabel: "Question",
+  noteALabel: "Answer",
   lastSave: null,
 };
 
@@ -65,6 +67,11 @@ function load() {
   chrome.storage.local.get(DEFAULTS, (items) => {
     renderStatus(items);
     ALL_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
+    // Reflect the custom heading texts set on the options page.
+    $("noteQHeadingLabel").textContent =
+      `"${items.noteQLabel || "Question"}" heading`;
+    $("noteAHeadingLabel").textContent =
+      `"${items.noteALabel || "Answer"}" heading`;
     $("folder").value = items.folder;
     renderLastSave(items.lastSave);
     updateTitleWarning();

@@ -27,6 +27,9 @@ const DEFAULTS = {
   noteQHeading: true, // "## Question" heading
   noteQText: true, // the question text (duplicates the note title)
   noteAHeading: true, // "## Answer" heading
+  // Heading texts, customizable in options.
+  noteQLabel: "Question",
+  noteALabel: "Answer",
 };
 
 /* ---------------------------------------------------------------- *
@@ -125,14 +128,16 @@ function buildNote({ question, answer, source, url }, date, settings) {
   // individually toggleable — e.g. the question text duplicates the title, so
   // users may drop it (though the title truncates at 60 chars and the full
   // question then lives nowhere).
+  const qLabel = (settings.noteQLabel || "").trim() || "Question";
+  const aLabel = (settings.noteALabel || "").trim() || "Answer";
   const parts = [];
-  if (settings.noteQHeading) parts.push("## Question", "");
+  if (settings.noteQHeading) parts.push(`## ${qLabel}`, "");
   if (settings.noteQText)
     parts.push(question || "_(no question captured)_", "");
   // Divider between the question and answer sections (only when a question
   // section exists to divide from).
   if (settings.noteQHeading || settings.noteQText) parts.push("---", "");
-  if (settings.noteAHeading) parts.push("## Answer", "");
+  if (settings.noteAHeading) parts.push(`## ${aLabel}`, "");
   parts.push(answer || "", "");
   const body = parts.join("\n");
 
@@ -429,15 +434,17 @@ async function saveToNotion(data, settings, date) {
     if (settings.fmUrl) meta.push(...richText(data.url, null, data.url));
     children.push({ object: "block", type: "paragraph", paragraph: { rich_text: meta } });
   }
-  // Same body-section toggles as the Obsidian note.
+  // Same body-section toggles and heading labels as the Obsidian note.
+  const qLabel = (settings.noteQLabel || "").trim() || "Question";
+  const aLabel = (settings.noteALabel || "").trim() || "Answer";
   if (settings.noteQHeading)
-    children.push({ object: "block", type: "heading_2", heading_2: { rich_text: richText("Question") } });
+    children.push({ object: "block", type: "heading_2", heading_2: { rich_text: richText(qLabel) } });
   if (settings.noteQText)
     children.push(...markdownToBlocks(data.question || "(no question captured)"));
   if (settings.noteQHeading || settings.noteQText)
     children.push({ object: "block", type: "divider", divider: {} });
   if (settings.noteAHeading)
-    children.push({ object: "block", type: "heading_2", heading_2: { rich_text: richText("Answer") } });
+    children.push({ object: "block", type: "heading_2", heading_2: { rich_text: richText(aLabel) } });
   children.push(...markdownToBlocks(data.answer || ""));
 
   const headers = {
