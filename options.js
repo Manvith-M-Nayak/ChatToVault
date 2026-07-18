@@ -22,11 +22,16 @@ const DEFAULTS = {
   // Section heading texts.
   noteQLabel: "Question",
   noteALabel: "Answer",
+  // Auto-link existing vault notes in the answer (Obsidian only).
+  autoLink: false,
+  autoLinkIgnore:
+    "objective, c++, implementation, introduction, conclusion, summary, overview, example, notes, question, answer",
 };
 
 const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl"];
 const BODY_TOGGLES = ["noteQHeading", "noteQText", "noteAHeading"];
-const ALL_TOGGLES = [...FM_TOGGLES, ...BODY_TOGGLES];
+const FEATURE_TOGGLES = ["autoLink"];
+const ALL_TOGGLES = [...FM_TOGGLES, ...BODY_TOGGLES, ...FEATURE_TOGGLES];
 
 const $ = (id) => document.getElementById(id);
 
@@ -39,6 +44,7 @@ function fillForm(items) {
   ALL_TOGGLES.forEach((k) => ($(k).checked = Boolean(items[k])));
   $("noteQLabel").value = items.noteQLabel || "";
   $("noteALabel").value = items.noteALabel || "";
+  $("autoLinkIgnore").value = items.autoLinkIgnore || "";
   updateTitleWarning();
 }
 
@@ -63,6 +69,7 @@ function save() {
     notionParent: $("notionParent").value.trim(),
     noteQLabel: $("noteQLabel").value.trim() || DEFAULTS.noteQLabel,
     noteALabel: $("noteALabel").value.trim() || DEFAULTS.noteALabel,
+    autoLinkIgnore: $("autoLinkIgnore").value.trim(),
   };
   ALL_TOGGLES.forEach((k) => (settings[k] = $(k).checked));
 

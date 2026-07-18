@@ -30,6 +30,13 @@ const DEFAULTS = {
   // Heading texts, customizable in options.
   noteQLabel: "Question",
   noteALabel: "Answer",
+  // Wrap mentions of existing vault notes in the answer as [[wikilinks]]
+  // (Obsidian only — Notion has no wikilink equivalent).
+  autoLink: false,
+  // Note names never auto-linked (comma-separated, case-insensitive) —
+  // generic words that would match in nearly every answer.
+  autoLinkIgnore:
+    "objective, c++, implementation, introduction, conclusion, summary, overview, example, notes, question, answer",
 };
 
 /* ---------------------------------------------------------------- *
@@ -341,6 +348,113 @@ function markdownToBlocks(md) {
 }
 
 /* ---------------------------------------------------------------- *
+ * AUTO-LINKING
+ *
+ * Wrap the first mention of each existing vault note in the answer text as a
+ * [[wikilink]]. The note list comes from the Local REST API's vault listing
+ * and is cached in chrome.storage.local with an hourly TTL so saves don't
+ * crawl the vault every time.
+ * ---------------------------------------------------------------- */
+
+const VAULT_INDEX_TTL = 60 * 60 * 1000; // 1 hour
+const VAULT_INDEX_MAX_DIRS = 100; // crawl safety cap
+
+// Recursively list every .md note name (basename, no extension) in the vault.
+async function listVaultNotes(base, apiKey) {
+  const enc = (p) => p.split("/").map(encodeURIComponent).join("/");
+  const headers = { Authorization: `Bearer ${apiKey}` };
+  const names = [];
+  const queue = [""]; // vault-relative dirs, "" = root, each ends with "/"
+  let visited = 0;
+  while (queue.length && visited < VAULT_INDEX_MAX_DIRS) {
+    const dir = queue.shift();
+    visited++;
+    const res = await fetch(`${base}/vault/${enc(dir)}`, { headers });
+    if (!res.ok) continue;
+    const body = await res.json().catch(() => null);
+    if (!body || !Array.isArray(body.files)) continue;
+    for (const f of body.files) {
+      if (f.endsWith("/")) queue.push(dir + f);
+      else if (f.endsWith(".md")) names.push(f.replace(/\.md$/, ""));
+    }
+  }
+  return names;
+}
+
+// Cached wrapper. Keyed on the REST base URL so switching vaults invalidates;
+// on fetch failure falls back to whatever stale cache exists.
+async function getVaultNoteNames(base, apiKey) {
+  const { vaultIndex } = await new Promise((resolve) =>
+    chrome.storage.local.get({ vaultIndex: null }, resolve)
+  );
+  const fresh =
+    vaultIndex &&
+    vaultIndex.base === base &&
+    Date.now() - vaultIndex.fetchedAt < VAULT_INDEX_TTL;
+  if (fresh) return vaultIndex.names;
+  try {
+    const names = await listVaultNotes(base, apiKey);
+    chrome.storage.local.set({
+      vaultIndex: { base, fetchedAt: Date.now(), names },
+    });
+    return names;
+  } catch {
+    return vaultIndex ? vaultIndex.names : [];
+  }
+}
+
+// Insert [[wikilinks]] for the first whole-word, case-insensitive mention of
+// each note name — but never inside code fences, inline code, existing links,
+// or URLs. Longest names first so "React Hooks" beats "React". A mention
+// whose casing differs from the note name keeps its display text via alias
+// syntax ("[[React Hooks|react hooks]]").
+function autoLinkMarkdown(md, names) {
+  if (!md || !names.length) return md;
+
+  // Split into alternating safe (plain text) / protected segments.
+  const PROTECT =
+    /```[\s\S]*?```|`[^`\n]*`|\[\[[^\]]*\]\]|\[[^\]\n]*\]\([^)\n]*\)|https?:\/\/\S+/g;
+  const parts = [];
+  let last = 0;
+  let m;
+  while ((m = PROTECT.exec(md))) {
+    if (m.index > last) parts.push({ text: md.slice(last, m.index), safe: true });
+    parts.push({ text: m[0], safe: false });
+    last = m.index + m[0].length;
+  }
+  if (last < md.length) parts.push({ text: md.slice(last), safe: true });
+
+  const sorted = [...names].sort((a, b) => b.length - a.length);
+  for (const name of sorted) {
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // \b only works next to word characters; skip it for names that start or
+    // end with punctuation ("C++").
+    const head = /^\w/.test(name) ? "\\b" : "";
+    const tail = /\w$/.test(name) ? "\\b" : "";
+    const re = new RegExp(`${head}${esc}${tail}`, "i");
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (!part.safe) continue;
+      const hit = re.exec(part.text);
+      if (!hit) continue;
+      const matched = hit[0];
+      const link =
+        matched === name ? `[[${name}]]` : `[[${name}|${matched}]]`;
+      // Re-split so the inserted link is opaque to later (shorter) names.
+      parts.splice(
+        i,
+        1,
+        { text: part.text.slice(0, hit.index), safe: true },
+        { text: link, safe: false },
+        { text: part.text.slice(hit.index + matched.length), safe: true }
+      );
+      break; // first occurrence only
+    }
+  }
+  return parts.map((p) => p.text).join("");
+}
+
+/* ---------------------------------------------------------------- *
  * REST API PUT
  * ---------------------------------------------------------------- */
 
@@ -353,10 +467,26 @@ async function saveToObsidian(data, settings, date) {
   // plugin UIs present it that way; we add the scheme ourselves below.
   const apiKey = settings.apiKey.replace(/^Bearer\s+/i, "");
 
-  const note = buildNote(data, date, settings);
-
   // Strip any trailing slash on the base URL to avoid a double slash.
   const base = settings.restUrl.replace(/\/+$/, "");
+
+  // Auto-link mentions of existing notes in the answer (toggle in options).
+  if (settings.autoLink) {
+    const names = await getVaultNoteNames(base, apiKey);
+    // Never self-link the note being created, and skip user-ignored names —
+    // generic words ("implementation") that would link in every answer.
+    const ignored = new Set(
+      (settings.autoLinkIgnore || "")
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+    );
+    ignored.add((sanitizeForFilename(data.question) || "untitled").toLowerCase());
+    const usable = names.filter((n) => !ignored.has(n.toLowerCase()));
+    data = { ...data, answer: autoLinkMarkdown(data.answer || "", usable) };
+  }
+
+  const note = buildNote(data, date, settings);
 
   // Filenames are just the question slug (the created time lives in the
   // frontmatter), so re-saving the same question would PUT over the old note.

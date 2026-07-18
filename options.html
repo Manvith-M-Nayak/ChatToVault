@@ -156,6 +156,26 @@
       Custom text for the two section headings; leave blank for the defaults.
     </div>
 
+    <label>Auto-linking</label>
+    <div class="hint">
+      Wraps the first mention of each existing vault note in the answer as a
+      [[wikilink]] (Obsidian only). The note list is cached and refreshed
+      hourly.
+    </div>
+    <label class="check">
+      <input type="checkbox" id="autoLink" /> auto-link existing notes
+    </label>
+    <label for="autoLinkIgnore">Ignored note names</label>
+    <input
+      id="autoLinkIgnore"
+      type="text"
+      placeholder="objective, c++, implementation"
+    />
+    <div class="hint">
+      Comma-separated, case-insensitive. Notes with these names are never
+      auto-linked — use it for generic titles that would match in every answer.
+    </div>
+
     <div>
       <button id="save">Save</button>
       <span id="status"></span>

@@ -9,7 +9,8 @@ const $ = (id) => document.getElementById(id);
 
 const FM_TOGGLES = ["fmCreated", "fmSource", "fmUrl"];
 const BODY_TOGGLES = ["noteQHeading", "noteQText", "noteAHeading"];
-const ALL_TOGGLES = [...FM_TOGGLES, ...BODY_TOGGLES];
+const FEATURE_TOGGLES = ["autoLink"];
+const ALL_TOGGLES = [...FM_TOGGLES, ...BODY_TOGGLES, ...FEATURE_TOGGLES];
 const DEFAULTS = {
   apiKey: "",
   notionToken: "",
@@ -23,6 +24,7 @@ const DEFAULTS = {
   noteAHeading: true,
   noteQLabel: "Question",
   noteALabel: "Answer",
+  autoLink: false,
   lastSave: null,
 };
 
