@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="26" fill="#5b4bda"/>
+  <rect width="128" height="128" rx="26" fill="#000000"/>
   <!-- down arrow (save into vault) -->
   <path d="M64 22 L64 66 M64 66 L44 46 M64 66 L84 46" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
   <!-- tray -->
