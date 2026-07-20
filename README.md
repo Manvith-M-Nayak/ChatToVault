@@ -1,5 +1,13 @@
 # ChatToVault
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
+> **Unofficial.** ChatToVault is an independent project and is **not
+> affiliated with, endorsed by, or sponsored by** Anthropic (claude.ai),
+> OpenAI (chatgpt.com), Google (gemini.google.com), Obsidian, or Notion. All
+> product names are trademarks of their respective owners and are used here
+> only to describe interoperability.
+
 A Chromium (Manifest V3) browser extension that adds save buttons under every
 AI response on **claude.ai**, **chatgpt.com**, and **gemini.google.com** — **Save to Obsidian**,
 **Save to Notion**, or both, depending on which destinations you configure.
@@ -139,3 +147,12 @@ No telemetry. No API keys in code. Keys/tokens are stored in
 - **Notion** (opt-in): saved chats are sent to Notion's servers via the
   official API — cloud storage, by definition. Only what you explicitly click
   Save on is sent.
+
+Full details: [PRIVACY.md](./PRIVACY.md).
+
+---
+
+## License
+
+Released under the [MIT License](./LICENSE). You may use, modify, and
+redistribute it freely; the software is provided "as is", without warranty.

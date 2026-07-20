@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChatToVault",
   "version": "1.3.0",
-  "description": "Save individual AI responses from claude.ai, chatgpt.com, and gemini.google.com to your Obsidian vault or Notion workspace.",
+  "description": "Save AI responses from claude.ai, chatgpt.com, gemini.google.com to Obsidian or Notion. Unofficial; not affiliated with any.",
   "permissions": [
     "storage"
   ],
